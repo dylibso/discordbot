@@ -1,5 +1,10 @@
 import { OAUTH_GITHUB_CLIENT_ID, OAUTH_GITHUB_SECRET, PGURL } from './config';
+import EventEmitter from 'node:events'
 import createClient from './xtp';
+import { CurrentPlugin } from '@extism/extism';
+import { SendMessageRequest, forwardMessage } from './domain/messages';
+import pg from 'pg'
+
 let db: any
 export async function getDatabaseConnection() {
   if (db) {
@@ -7,15 +12,29 @@ export async function getDatabaseConnection() {
   }
 
   if (!PGURL.startsWith('file://')) {
-    const pg = require('pg')
-    db = new pg.Pool()
+    db = new pg.Pool({ connectionString: PGURL })
+
+    db.transaction = async <T>(fn: (db: pg.Client) => Promise<T>) => {
+      const client = await db.connect()
+      await client.query(`BEGIN;`)
+      try {
+        const xs = await fn(client)
+        await client.query(`COMMIT;`)
+        return xs
+      } catch {
+        await client.query(`ROLLBACK;`)
+      }
+    };
     return db
   }
 
   const { PGlite } = await import('@electric-sql/pglite')
   db = new PGlite(PGURL)
+
   return db
 }
+
+export const events = new EventEmitter()
 
 export async function getOctokit({ token }: { token: string }) {
   const octoOauth = await import('@octokit/auth-oauth-user')
@@ -36,7 +55,28 @@ export async function getXtp(): ReturnType<typeof createClient> {
   xtp ??= await createClient({
     token: String(process.env.XTP_TOKEN),
     appId: String(process.env.XTP_APP_ID),
-    baseUrl: 'http://localhost:8080'
+    baseUrl: 'http://localhost:8080',
+    functions: {
+      'extism:host/user': {
+        forwardMessage(context: CurrentPlugin, reqPtr: bigint) {
+          console.log(context.read(1n << 48n))
+          console.log('uhhh')
+          try {
+            // this should be reqPtr, BUT there's a bug in the js-pdk preventing us from transferring info about 64-bit memory addrs
+            const arg = context.read(2n << 48n)
+            if (!arg) return
+
+            console.log('arg:', arg.text(), reqPtr)
+            // TODO: ideally the sdk is doing validation here
+            forwardMessage(arg.json() as SendMessageRequest).catch(err => {
+              // TODO: log error
+            })
+          } catch (err) {
+            console.log('err', err)
+          }
+        }
+      }
+    }
   })
   return xtp
 }

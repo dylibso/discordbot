@@ -5,7 +5,7 @@ import path from 'node:path'
 export default async function migrations() {
   const db = await getDatabaseConnection()
 
-  await db.exec(`
+  await db.query(`
       CREATE TABLE IF NOT EXISTS "_migrations" (
         id bool primary key default true,
         last_migration int,
@@ -25,7 +25,7 @@ export default async function migrations() {
   for (const file of files) {
     console.log(`running ${file.name}`)
     const contents = await fs.readFile(path.join(__dirname, '..', 'migrations', file.name), 'utf8')
-    await db.exec(contents)
+    await db.query(contents)
     await db.query(`UPDATE "_migrations" SET "last_migration" = $1;`, [++idx])
     ++idx
   }

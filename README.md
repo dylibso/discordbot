@@ -1,10 +1,10 @@
-# chatty joe, a chat app
+# idiolect, a chat app
 
 Because node has one demo
 
 ---
 
-You sign up for chatty joe and are auto-matically (-magically?) signed up for
+You sign up for idiolect and are auto-matically (-magically?) signed up for
 XTP. What does this mean? WELL.
 
 By default the interface is just like a web IRC thing. Just channels with users
@@ -32,5 +32,3 @@ imports:
 - subscribeAutomation(bot)
 
 ---
-
-

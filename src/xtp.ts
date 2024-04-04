@@ -1,6 +1,9 @@
 import createPlugin, { Plugin, PluginOutput } from '@extism/extism'
 import cacache from 'cacache'
 
+const KEEP_RESIDENT_TIME = 1000
+const REFETCH_TIME = 1000
+
 declare module "cacache" {
   namespace index {
     function insert(path: string, key: string, integrity: string, opts: cacache.put.Options): any;
@@ -80,7 +83,7 @@ class Client {
   #online: Record<string, { lastCall: number, plugin: Promise<Plugin> }>
   #storage: ExtensionStorage
 
-  extensionPoints: { [k: string]: { [k: string]: <T>(guestKey: string, params: any[], context: any, defaultValue: T) => Promise<T> } } = {}
+  extensionPoints: { [k: string]: { [k: string]: <A, T>(guestKey: string, param: A, context: any, defaultValue: T) => Promise<T> } } = {}
 
   constructor(opts: Required<XTPClientOptions>) {
     this.#baseUrl = opts.baseUrl
@@ -94,7 +97,8 @@ class Client {
     setInterval(async () => {
       const now = Date.now()
       for (const [key, { lastCall, plugin }] of Object.entries(this.#online)) {
-        if ((now - lastCall) > 1000 * 60) {
+        if ((now - lastCall) > KEEP_RESIDENT_TIME) {
+          console.log('killing ', key)
           delete this.#online[key]
           const p = await plugin
           p.close().catch((err: Error) => {
@@ -120,9 +124,11 @@ class Client {
     }
 
     headers['authorization'] ??= `Bearer ${this.#token}`
+    console.log(headers)
     const response = await this.#fetch(`${this.#baseUrl}${path}`, opts as RequestInit)
 
-    if (!response.ok) {
+    console.log(`${opts.method || 'GET'} ${path} - ${response.status} ${response.statusText}`)
+    if (response.status >= 400) {
       throw Object.assign(new Error(`${opts.method} ${path} - ${response.status} ${response.statusText}`), {
         response
       })
@@ -145,7 +151,8 @@ class Client {
       return null
     }
 
-    const plugin = createPlugin(info.data, {
+    const plugin = createPlugin(info.data.buffer, {
+      useWasi: true,
       functions: this.#functions as any
     })
 
@@ -168,7 +175,7 @@ class Client {
     } = localPlugin ?? {}
 
     const result = data ? { data, type: metadata['content-type'] } : null
-    if (!data || (Date.now() - Date.parse(metadata?.last)) > 1000 * 60) {
+    if (!data || (Date.now() - Number(metadata?.last || 0)) > REFETCH_TIME) {
       const response = await this.#request(`/api/v1/extension-points/${extId}/installs/guest/${guestKey}`, {
         redirect: 'manual',
         headers: metadata?.etag ? {
@@ -232,7 +239,7 @@ class Client {
       const exports = extension.schema?.exports ?? []
       for (const exp of exports) {
         this.extensionPoints[extension.name] = {
-          [exp.name]: async (guestKey: string, params: any[], context: any, defaultValue: any) => {
+          [exp.name]: async <A>(guestKey: string, param: A, defaultValue: any) => {
             const [err, plugin]: [Error | null, Plugin | null] = await this.#getPlugin(extension.id, guestKey).then(
               (result: Plugin | null) => [null, result],
               err => [err, null]
@@ -241,11 +248,17 @@ class Client {
               // TODO: log error!
             }
 
+            console.log('!'.repeat(10), extension.name, exp.name, plugin, err)
             if (!plugin || err) {
               return defaultValue
             }
 
-            const [err2, data]: [Error | null, PluginOutput | null] = await plugin.call(exp.name, params[0]).then(
+            const arg = (
+              ArrayBuffer.isView(param) ? new Uint8Array(param.buffer) :
+                typeof param === 'string' ? param :
+                  JSON.stringify(param)
+            )
+            const [err2, data]: [Error | null, PluginOutput | null] = await plugin.call(exp.name, arg).then(
               result => [null, result],
               err => [err, null]
             )
@@ -253,7 +266,7 @@ class Client {
             if (err2) {
               throw err2
             }
-            return data?.json()
+            return data
           }
         }
       }
@@ -292,10 +305,16 @@ class FilesystemStorage implements ExtensionStorage {
   #cacheDir: string
   constructor(dir = process.env.XTP_PLUGIN_CACHE_DIR ?? `.xtp`) {
     this.#cacheDir = dir
+    console.log(this.#cacheDir)
   }
 
   async getByExtIdGuestKey(extId: string, guestKey: string) {
-    const result = await cacache.get(this.#cacheDir, `xtpv1:ext:${extId}:${guestKey}`)
+    const result = await cacache.get(this.#cacheDir, `xtpv1:ext:${extId}:${guestKey}`).catch(err => {
+      if (err.code === 'ENOENT') {
+        return null
+      }
+      throw err
+    })
 
     if (!result) {
       return null
@@ -310,7 +329,12 @@ class FilesystemStorage implements ExtensionStorage {
   }
 
   async getByETag(tag: string) {
-    const result = await cacache.get(this.#cacheDir, `xtpv1:etag:${tag}`)
+    const result = await cacache.get(this.#cacheDir, `xtpv1:etag:${tag}`).catch(err => {
+      if (err.code === 'ENOENT') {
+        return null
+      }
+      throw err
+    })
 
     if (!result) {
       return null

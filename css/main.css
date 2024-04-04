@@ -1,0 +1,21 @@
+@tailwind base;
+@layer base {
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  h3 {
+    @apply text-lg;
+  }
+  a {
+    @apply text-blue-600 underline;
+  }
+  input {
+    @apply border-solid shadow-md border-slate-500 p-2 focus:border-sky-600 rounded-sm text-lg ;
+  }
+}
+
+@tailwind components;
+@tailwind utilities;

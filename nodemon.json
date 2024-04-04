@@ -7,6 +7,6 @@
   "ignore": [
     "src/**/*.spec.ts"
   ],
-  "exec": "ts-node -r dotenv/config ./src/index.ts"
+  "exec": "node -r dotenv/config node_modules/.bin/ts-node ./src/index.ts"
 }
 
