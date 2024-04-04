@@ -1,0 +1,9 @@
+{
+  "extends": "fastify-tsconfig",
+  "include": [
+    "src/**/*.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "dist"
+  }
+}

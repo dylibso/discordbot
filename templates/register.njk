@@ -1,0 +1,47 @@
+{% extends base %}
+
+{% block head %}
+    <style>
+      body { display: flex; align-items: center; justify-content: center; }
+      main { }
+    </style>
+{% endblock %}
+
+{% block main %}
+<div>
+  <form method="POST" action="/register" hx-post="/register"> 
+    <dl>
+      <dt>
+        <label for="username">username:</label>
+      </dt>
+      <dd>
+        <input id="username" autocomplete="username" type="text" name="username" minlength="3" value="{{ oauth.user.login }}" {% if not oauth.user.login %}autofocus{% endif %} />
+        <p><small><i>(this will be used as your screenname.)</i></small></p>
+      </dd>
+
+      {% if not oauth.user %}
+      <dt>
+        <label for="email">email:</label>
+      </dt>
+      <dd>
+        <input id="email" autocomplete="email" type="email" name="email" minlength="3" value="{{ user.email }}" />
+      </dd>
+
+      <dt>
+        <label for="password">password:</label>
+      </dt>
+      <dd>
+        <input id="password" autocomplete="new-password" type="password" name="password" minlength="3" />
+      </dd>
+    </dl>
+    {% endif %}
+
+    <input type="submit" value="Register"
+      hx-post="/register"
+      hx-target="#main"
+      hx-ext='json-enc'
+    />
+  </form>
+
+</div>
+{% endblock %}

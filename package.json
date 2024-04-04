@@ -1,0 +1,49 @@
+{
+  "name": "chatty-joe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "tsc -p tsconfig.test.json",
+    "test": "cd dist-test; node --test --test-concurrency=8",
+    "test-cov": "npm run pretest && cd dist-test && c8 node --test --test-concurrency=8",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "migrate": "npm run build && node -r dotenv/config dist/migrations.js",
+    "dev": "nodemon"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cacache": "^17.0.2",
+    "@types/cookie": "^0.6.0",
+    "@types/node": "^20.11.0",
+    "@types/pg": "^8.11.4",
+    "c8": "^9.1.0",
+    "culture-ships": "^1.0.3",
+    "dotenv": "^16.4.5",
+    "fastify-tsconfig": "^2.0.0",
+    "nodemon": "^3.0.2",
+    "pino-pretty": "^10.3.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.1.1",
+    "@extism/extism": "^1.0.2",
+    "@fastify/cookie": "^9.3.1",
+    "@fastify/oauth2": "^7.8.0",
+    "@fastify/session": "^10.7.0",
+    "@fastify/view": "^9.0.0",
+    "@octokit/auth-oauth-app": "^8.0.2",
+    "@octokit/auth-oauth-user": "^5.0.2",
+    "@octokit/core": "^6.0.1",
+    "cacache": "^18.0.2",
+    "fastify": "^4.26.2",
+    "fastify-sse-v2": "^4.0.0",
+    "nunjucks": "^3.2.4",
+    "pg": "^8.11.4"
+  }
+}

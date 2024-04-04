@@ -1,0 +1,12 @@
+{
+  "watch": [
+    "src",
+    "templates"
+  ],
+  "ext": "njk,ts,json",
+  "ignore": [
+    "src/**/*.spec.ts"
+  ],
+  "exec": "ts-node -r dotenv/config ./src/index.ts"
+}
+

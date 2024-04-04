@@ -1,0 +1,47 @@
+{% extends base %}
+
+{% block head %}
+<style>
+  html { height: 100%; }
+  body { display: flex; margin: 0; align-items: stretch; flex-direction: column; min-height: 100%; height: 100%; }
+  main { flex: 1; display: flex; }
+
+  #channel { display: flex; flex-direction: column; overflow: auto; }
+  #messages { margin: 1em; flex: 1; position: relative; overflow: scroll; height: 100%; }
+  #messages > div { position: absolute; }
+  #messageoutlet { }
+  #input { display: flex; margin: 1em; height: auto; width: 100%; }
+</style>
+{% endblock %}
+
+{% block main %}
+
+<div id="channel" hx-sse="connect:/channel/{{ id }}/messages"
+    hx-on:htmx:swap="javascript:console.log('hi')"
+  >
+
+  <div id="messages"
+    hx-sse="swap:messages"
+    hx-swap="beforeend scroll:bottom"
+    hx-target="#messageoutlet"
+    >
+    <div>
+      <div id="messageoutlet"></div>
+    </div>
+  </div>
+
+  <form id="input" autocomplete="off" action="/channel/{{ id }}" method="POST" hx-post="/channel/{{ id }}" hx-on:submit="this.reset()" hx-ext="json-enc" hx-swap="none">
+    <input type="text"
+      name="message"
+      autofocus
+      />
+  </form>
+
+  <script type="text/javascript">
+    htmx.on('htmx:sseMessage', ev => {
+      messages.scrollTo({ top: messages.scrollHeight - messages.clientHeight , behavior: 'smooth' })
+    })
+  </script>
+</div>
+
+{% endblock %}
