@@ -59,11 +59,8 @@ export async function getXtp(): ReturnType<typeof createClient> {
     functions: {
       'extism:host/user': {
         forwardMessage(context: CurrentPlugin, reqPtr: bigint) {
-          console.log(context.read(1n << 48n))
-          console.log('uhhh')
           try {
-            // this should be reqPtr, BUT there's a bug in the js-pdk preventing us from transferring info about 64-bit memory addrs
-            const arg = context.read(2n << 48n)
+            const arg = context.read(reqPtr)
             if (!arg) return
 
             console.log('arg:', arg.text(), reqPtr)

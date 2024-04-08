@@ -58,7 +58,8 @@ export default async function createClient({
   storage,
   functions
 }: XTPClientOptions): Promise<Client> {
-  baseUrl = String(baseUrl ?? 'https://xtp.dylibso.com/')
+  baseUrl = String(baseUrl ?? 'https://xtp.dylibso.com')
+  baseUrl = new URL(baseUrl).origin
   if (!token || typeof token !== 'string') {
     throw new TypeError(`property "token" is required to instantiate an XTP client`)
   }
