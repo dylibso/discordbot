@@ -49,7 +49,7 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
   const xtp = await getXtp()
 
   return await db.transaction(async (db: any) => {
-    console.log('running create user row')
+    console.log('running create user row', registration)
     const result = await db.query(`
       INSERT INTO "users" (
         username

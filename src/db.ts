@@ -21,8 +21,9 @@ export async function getDatabaseConnection() {
       const xs = await fn(client)
       await client.query(`COMMIT;`)
       return xs
-    } catch {
+    } catch (err) {
       await client.query(`ROLLBACK;`)
+      throw err
     }
   };
   return db

@@ -84,11 +84,11 @@ export default async function server() {
 
     const user = await findUserByGithubLogin(response.data.login)
 
-
     if (user) {
       request.session.user = user
       return reply.status(301).header('location', '/').send()
     }
+    console.log('saving github data to session', response.data)
     request.session.github = { oauth: result.token, user: response.data }
     return reply.status(301).header('location', '/register').send()
   })
@@ -111,7 +111,7 @@ export default async function server() {
     if (user) {
       request.session.user = user
       request.session.github = null
-      return reply.redirect(301, '/')
+      return reply.redirect('/').status(301)
     }
 
     return registerHandler(request, reply)

@@ -19,6 +19,8 @@ export class SessionStore implements FastifySessionStore {
     // bcrypt here because this check happens so much more frequently.
     const data = JSON.stringify(session)
     const id = this._toDatabaseKey(sessionId)
+
+    console.log('setting session', data)
     getDatabaseConnection().then(db => db.query(`
       insert into sessions
       (id, data)
