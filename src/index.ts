@@ -13,6 +13,11 @@ import { once } from 'node:events'
 import fstatic from '@fastify/static'
 import { sendMessage } from './domain/messages'
 import { getLogger } from './logger'
+import cultureShips from 'culture-ships'
+
+// Select a ping response. Use the name of an intelligent AI ship from Iain M. Bank's "Culture" SF series.
+// (We can use this to tell when the process reboots, too.)
+const PING_RESPONSE = cultureShips.random()
 
 declare module 'fastify' {
   export interface FastifyInstance {
@@ -153,6 +158,8 @@ export default async function server() {
     console.log('sending')
     await sendMessage(request.params.id, request.session.user, message)
   })
+
+  server.get('/_monitor/ping', async (request, reply) => PING_RESPONSE)
 
   return new Promise((resolve, reject) => {
     server.listen({ port: PORT, host: HOST }, (err, address) => {
