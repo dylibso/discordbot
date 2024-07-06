@@ -1,0 +1,59 @@
+name: XTP CI
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      PGURL: postgres://postgres:postgres@localhost:5432/postgres
+      FORCE_PRETTY_OUTPUT: true
+      HOST_SECRET: stub value
+      OAUTH_GITHUB_CLIENT_ID: stub value
+      OAUTH_GITHUB_SECRET: stub value
+      SESSION_SECRET: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa any value is fine as long as its 32 chars long"
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-discordbot-npm-cache-${{ hashFiles('service/api/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-discordbot-npm-cache-
+
+      - name: install deps
+        run: |
+          npm ci
+
+      - name: migrate
+        run: |
+          npm run migrate
+
+      - name: run tests
+        run: |
+          TEST_LOG=1 npm t
+

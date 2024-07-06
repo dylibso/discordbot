@@ -12,26 +12,19 @@ export async function getDatabaseConnection() {
     return db
   }
 
-  if (!PGURL.startsWith('file://')) {
-    db = new pg.Pool({ connectionString: PGURL })
+  db = new pg.Pool({ connectionString: PGURL })
 
-    db.transaction = async <T>(fn: (db: pg.Client) => Promise<T>) => {
-      const client = await db.connect()
-      await client.query(`BEGIN;`)
-      try {
-        const xs = await fn(client)
-        await client.query(`COMMIT;`)
-        return xs
-      } catch {
-        await client.query(`ROLLBACK;`)
-      }
-    };
-    return db
-  }
-
-  const { PGlite } = await import('@electric-sql/pglite')
-  db = new PGlite(PGURL)
-
+  db.transaction = async <T>(fn: (db: pg.Client) => Promise<T>) => {
+    const client = await db.connect()
+    await client.query(`BEGIN;`)
+    try {
+      const xs = await fn(client)
+      await client.query(`COMMIT;`)
+      return xs
+    } catch {
+      await client.query(`ROLLBACK;`)
+    }
+  };
   return db
 }
 

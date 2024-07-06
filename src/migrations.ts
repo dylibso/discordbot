@@ -40,7 +40,7 @@ migrations().then(async last => {
   console.log(`ran up to ${last}`)
 
   const pg = await getDatabaseConnection()
-  pg.close()
+  pg.end()
 }).catch(err => {
   console.error(err.stack)
   process.exit(1)
