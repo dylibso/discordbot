@@ -25,6 +25,9 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha
 
       - id: build
         uses: docker/build-push-action@v5
@@ -86,3 +89,10 @@ jobs:
             -H "content-type: application/json" \
             -X PUT -d "$body" \
             'https://xtp-staging.dylibso.com/api/v1/extension-points/'$EXTENSION_ID
+
+  northflank:
+    runs-on: ubuntu-latest
+    needs: [build, migrate, xtp]
+    steps:
+      - name: Trigger release flow
+        run: curl -X GET ${{ secrets.NF_WEBHOOK }}?image_tag=${{ github.SHA }}
