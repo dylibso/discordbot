@@ -39,6 +39,15 @@ $ npm run migrate
 $ npm run dev
 ```
 
+### setting up github actions on another app
+
+When we switch from xtp-staging to xtp for the deployed service:
+
+- We need to change the `XTP_TOKEN` GitHub secret to an admin of the XTP env's app.
+- We need to create _two_ extension points on that app: one for testing and one for prod.
+- The testing extension ID needs to go in `.github/workflows/ci.yaml` replacing `EXTENSION_ID`.
+- The prod extension ID needs to go in `.github/workflows/cd.yaml` replacing `EXTENSION_ID`.
+
 ---
 
 
