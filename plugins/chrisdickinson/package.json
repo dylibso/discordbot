@@ -1,0 +1,18 @@
+{
+  "author": "",
+  "description": "",
+  "devDependencies": {
+    "esbuild": "^0.20.2",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.4"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "chrisdickinson",
+  "scripts": {
+    "build": "node esbuild.js && extism-js dist/index.js -i src/index.d.ts -o dist/plugin.wasm",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.0"
+}

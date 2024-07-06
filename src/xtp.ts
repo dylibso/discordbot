@@ -180,7 +180,7 @@ class Client {
       const response = await this.#request(`/api/v1/extension-points/${extId}/installs/guest/${guestKey}`, {
         redirect: 'manual',
         headers: metadata?.etag ? {
-          'etag': metadata.etag
+          'if-none-match': metadata.etag
         } : {}
       })
 

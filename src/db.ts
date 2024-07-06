@@ -1,9 +1,10 @@
 import { OAUTH_GITHUB_CLIENT_ID, OAUTH_GITHUB_SECRET, PGURL } from './config';
 import EventEmitter from 'node:events'
-import createClient from './xtp';
+import createClient from '@dylibso/xtp';
 import { CurrentPlugin } from '@extism/extism';
 import { SendMessageRequest, forwardMessage } from './domain/messages';
 import pg from 'pg'
+import { getLogger } from './logger';
 
 let db: any
 export async function getDatabaseConnection() {
@@ -55,7 +56,8 @@ export async function getXtp(): ReturnType<typeof createClient> {
   xtp ??= await createClient({
     token: String(process.env.XTP_TOKEN),
     appId: String(process.env.XTP_APP_ID),
-    baseUrl: 'http://localhost:8080',
+    baseUrl: String(process.env.XTP_ENDPOINT || 'http://localhost:8080'),
+    logger: getLogger(),
     functions: {
       'extism:host/user': {
         forwardMessage(context: CurrentPlugin, reqPtr: bigint) {
@@ -63,11 +65,12 @@ export async function getXtp(): ReturnType<typeof createClient> {
             const arg = context.read(reqPtr)
             if (!arg) return
 
-            console.log('arg:', arg.text(), reqPtr)
             // TODO: ideally the sdk is doing validation here
             forwardMessage(arg.json() as SendMessageRequest).catch(err => {
               // TODO: log error
             })
+
+            return context.store("true")
           } catch (err) {
             console.log('err', err)
           }

@@ -49,7 +49,7 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
   const xtp = await getXtp()
 
   return await db.transaction(async (db: any) => {
-    const { rows: [user] } = await db.query(`
+    const result = await db.query(`
       INSERT INTO "users" (
         username
       ) VALUES (
@@ -57,9 +57,10 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
       ) RETURNING *;
     `, [registration.username])
 
+    const { rows: [user] } = result
+
     if (registration.github) {
-      console.log(registration.github)
-      db.query(`
+      await db.query(`
         INSERT INTO "credentials" (
           user_id,
           "type",
@@ -75,12 +76,16 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
         name: registration.github.user.name,
         email: registration.github.user.email,
         guestKey: user.id
+      }).catch(err => {
+        console.error(err)
+        throw err
       })
     }
 
     if (registration.emailPassword) {
       // TODO
     }
+
 
     return user
   })

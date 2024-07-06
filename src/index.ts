@@ -1,5 +1,3 @@
-import pino from 'pino'
-import pretty from 'pino-pretty'
 import fastify from 'fastify'
 import oauthPlugin from '@fastify/oauth2'
 import cookie from '@fastify/cookie'
@@ -14,6 +12,7 @@ import { FastifySSEPlugin } from "fastify-sse-v2";
 import { once } from 'node:events'
 import fstatic from '@fastify/static'
 import { sendMessage } from './domain/messages'
+import { getLogger } from './logger'
 
 declare module 'fastify' {
   export interface FastifyInstance {
@@ -28,8 +27,7 @@ declare module 'fastify' {
 }
 
 export default async function server() {
-  const logger = pino({ level: 'debug' }, process.stdout.isTTY ? pretty({ colorize: true }) : process.stdout)
-  const server = fastify({ logger })
+  const server = fastify({ logger: getLogger() })
 
   server.register(fstatic, {
     root: path.join(__dirname, '..', 'dist', 'static'),

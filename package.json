@@ -1,5 +1,5 @@
 {
-  "name": "idiolect",
+  "name": "discordbot",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -33,6 +33,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@dylibso/xtp": "0.0.0-rc4",
     "@electric-sql/pglite": "^0.1.1",
     "@extism/extism": "^1.0.2",
     "@fastify/cookie": "^9.3.1",

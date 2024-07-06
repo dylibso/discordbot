@@ -1,0 +1,8 @@
+app_id = "app_01ht60bjtzfqg8pm7mxcn7pzbg"
+
+# The wasm file generated after build
+bin = "dist/plugin.wasm"
+extension_point_ids = ["ext_01htn206nkf0v8fw06dycfacap"]
+
+[scripts]
+  build = "npm run build"

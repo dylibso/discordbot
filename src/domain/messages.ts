@@ -16,6 +16,7 @@ export interface SendMessageRequest {
 
 export async function sendMessage(channel: string, user: User, message: string) {
   const xtp = await getXtp();
+
   const id = await Iron.seal(channel, String(HOST_SECRET), IronDefaults)
 
   const req = {
@@ -23,8 +24,9 @@ export async function sendMessage(channel: string, user: User, message: string) 
     message,
     id
   }
-  console.log({ req })
-  await xtp.extensionPoints.chat.onUserSendMessageRequest('cafc8b86-2118-44ac-95af-7151ac897548', req, {}, null)
+  await xtp.extensionPoints.chat.onUserSendMessageRequest(user.id, req, {
+    default: null
+  })
 }
 
 export async function forwardMessage(msg: SendMessageRequest) {

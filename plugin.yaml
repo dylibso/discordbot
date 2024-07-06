@@ -1,11 +1,16 @@
+# If you're running your own XTP (or using your own app on staging) this schema
+# belongs to an extension point named "chat". 
+#
+# We should keep the XTP app that the deployed service uses in sync with this
+# schema.
 ---
-version: v0
+version: v1-draft
 exports:
   - name: onUserSendMessageRequest
     description: >-
       This export is called whenever a user requests that a message be sent to the channel.
       Returning `false` blocks the message from further processing.
-    x-codeSamples:
+    codeSamples:
       - lang: typescript
         source: |
           function onUserSendMessageRequest(req: SendMessageRequest) {
@@ -13,53 +18,33 @@ exports:
             req.message = req.message.toUpperCase()
             forwardMessage(req)
           }
-    parameters:
-      - description: The message request including the originating user
-        $ref: '#/components/parameters/SendMessageRequestPtr'
-    returns: []
-  # - name: onUserHistoryRequest
-  # - name: onUserSubscribeRequest
-  # - name: onAutomationSubscribeRequest
-  # - name: onAutomationMessageRequest
-#imports: {}
-  # - name: subscribeUser
-  # - name: unsubscribeUser
-  # - name: blockUser
-  # - name: forwardMessage
-  # - name: sendMessage
-  # - name: subscribeAutomation
-components:
-  parameters:
-    SendMessageRequestPtr:
-      name: sendMessageRequestPtr
-      description: an Extism pointer to a SendMessageRequest
-      schema:
-        type: integer
-        format: ExtismPointer
-        ref: '#/schemas/SendMessageRequest'
-  schemas:
-    User:
-      name: User
+    input:
+        $ref: '#/schemas/SendMessageRequest'
+imports:
+    - name: forwardMessage
+      input:
+        $ref: '#/schemas/SendMessageRequest'
+      output:
+        type: boolean
+        description: boolean encoded as json
+        contentType: application/json
+schemas:
+    - name: User
       description: A representation of a user
       contentType: application/json
       properties:
-        username:
-          name: Username
+        - name: username
           description: A username
           type: string
-        id:
-          name: User id
+        - name: id
           description: A UUID representing the user
           type: string
-          format: uuid
-    SendMessageRequest:
-      name: SendMessageRequest
+    - name: SendMessageRequest
       description: A user requests to send a message to the channel
       contentType: application/json
-      required: ['user', 'message']
       properties:
-        user:
-          type: object
-          $ref: '#/components/schemas/User'
-        message:
+        - name: user
+          $ref: '#/schemas/User'
+        - name: message
           type: string
+          description: 'the message'
