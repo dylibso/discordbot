@@ -37,6 +37,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   migrate:
+    runs-on: ubuntu-latest
     env:
       PGURL: ${{ secrets.PGURL }}
       FORCE_PRETTY_OUTPUT: true
@@ -45,7 +46,6 @@ jobs:
       OAUTH_GITHUB_SECRET: stub value
       SESSION_SECRET: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa any value is fine as long as its 32 chars long"
 
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js
@@ -69,4 +69,15 @@ jobs:
         run: |
           npm run migrate
 
+  xtp:
+    env:
+      XTP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: update the schema
+        run: |
+          body="$(jq -rcM -n --arg content "$(cat plugin.yaml)" '{"name":"chat", "schema": $content}')"
+          EXTENSION_ID=ext_01j24z4yc2emetf0hysrnyg41j
+          curl -sLfi -H "Authorization: Bearer $XTP_TOKEN" 'https://xtp-staging.dylibso.com/api/v1/extension-points/'$EXTENSION_ID
