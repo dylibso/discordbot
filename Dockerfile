@@ -13,7 +13,6 @@ WORKDIR /app
 COPY . .
 RUN rm -rf node_modules
 COPY --from=builder /app/node_modules /app/node_modules
-RUN npm run migrate
 RUN npm run build
 
 EXPOSE 8124
