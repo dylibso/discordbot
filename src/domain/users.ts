@@ -49,6 +49,7 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
   const xtp = await getXtp()
 
   return await db.transaction(async (db: any) => {
+    console.log('running create user row')
     const result = await db.query(`
       INSERT INTO "users" (
         username
@@ -60,6 +61,7 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
     const { rows: [user] } = result
 
     if (registration.github) {
+      console.log('running create credential row')
       await db.query(`
         INSERT INTO "credentials" (
           user_id,
@@ -72,13 +74,13 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
         );
       `, [user.id, JSON.stringify(registration.github.user)])
 
+      console.log('sending guest invite')
       await xtp.inviteGuest({
         name: registration.github.user.name,
         email: registration.github.user.email,
         guestKey: user.id
       }).catch(err => {
         console.error(err)
-        throw err
       })
     }
 

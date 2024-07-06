@@ -45,7 +45,7 @@ export default async function server() {
   server.register(FastifySSEPlugin)
   server.register(session, {
     secret: SESSION_SECRET as string,
-    cookie: { secure: COOKIE_REQUIRES_HTTPS },
+    cookie: { secure: COOKIE_REQUIRES_HTTPS, sameSite: 'lax', httpOnly: true },
     saveUninitialized: false,
     store: new SessionStore() as any
   })
@@ -62,6 +62,7 @@ export default async function server() {
     },
     startRedirectPath: '/login/github',
     callbackUri: `${HOST_ORIGIN}/login/github/callback`,
+    cookie: { secure: COOKIE_REQUIRES_HTTPS, sameSite: 'lax', httpOnly: true },
   })
 
   server.register(view, {
