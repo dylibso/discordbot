@@ -72,7 +72,7 @@ jobs:
   xtp:
     runs-on: ubuntu-latest
     env:
-      XTP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      XTP_TOKEN: ${{ secrets.XTP_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4

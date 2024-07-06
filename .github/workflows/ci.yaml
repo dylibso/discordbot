@@ -8,7 +8,7 @@ jobs:
   xtp:
     runs-on: ubuntu-latest
     env:
-      XTP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      XTP_TOKEN: ${{ secrets.XTP_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -72,4 +72,3 @@ jobs:
       - name: run tests
         run: |
           TEST_LOG=1 npm t
-
