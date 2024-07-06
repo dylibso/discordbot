@@ -1,11 +1,11 @@
-name: XTP CI
+name: CI
 
 on:
   workflow_dispatch:
   push:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     services:
