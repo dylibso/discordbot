@@ -81,4 +81,8 @@ jobs:
         run: |
           body="$(jq -rcM -n --arg content "$(cat plugin.yaml)" '{"name":"chat", "schema": $content}')"
           EXTENSION_ID=ext_01j24z4yc2emetf0hysrnyg41j
-          curl -sLfi -H "Authorization: Bearer $XTP_TOKEN" 'https://xtp-staging.dylibso.com/api/v1/extension-points/'$EXTENSION_ID
+          curl -sLfi \
+            -H "Authorization: Bearer $XTP_TOKEN" \
+            -H "content-type: application/json" \
+            -X PUT -d "$body" \
+            'https://xtp-staging.dylibso.com/api/v1/extension-points/'$EXTENSION_ID
