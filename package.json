@@ -7,6 +7,7 @@
     "pretest": "tsc -p tsconfig.test.json",
     "test": "cd dist-test; node --test --test-concurrency=8",
     "test-cov": "npm run pretest && cd dist-test && c8 node --test --test-concurrency=8",
+    "postbuild": "tailwindcss -i ./css/main.css -o ./dist/static/output.css",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "migrate": "npm run build && node -r dotenv/config dist/migrations.js",
