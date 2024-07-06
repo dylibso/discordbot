@@ -70,6 +70,7 @@ jobs:
           npm run migrate
 
   xtp:
+    runs-on: ubuntu-latest
     env:
       XTP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
