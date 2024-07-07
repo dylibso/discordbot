@@ -17,10 +17,10 @@ export class SessionStore implements FastifySessionStore {
     // Hashing the incoming id so if we leak database contents,
     // the session ids cannot be used directly. We're not using
     // bcrypt here because this check happens so much more frequently.
+    console.log('setting session', sessionId)
     const data = JSON.stringify(session)
     const id = this._toDatabaseKey(sessionId)
 
-    console.log('setting session', data)
     getDatabaseConnection().then(db => db.query(`
       insert into sessions
       (id, data)
@@ -34,6 +34,7 @@ export class SessionStore implements FastifySessionStore {
   }
 
   get(sessionId: string, callback: (err: any, result?: Session | null | undefined) => void): void {
+    console.log('getting session', sessionId)
     const id = this._toDatabaseKey(sessionId)
     getDatabaseConnection().then(db => db.query(`
       select id, data from "sessions" where id = $1 limit 2;
@@ -62,6 +63,7 @@ export class SessionStore implements FastifySessionStore {
   }
 
   destroy(sessionId: string, callback: (err?: any) => void): void {
+    console.log('destroying session', sessionId)
     const id = this._toDatabaseKey(sessionId)
 
     getDatabaseConnection().then(

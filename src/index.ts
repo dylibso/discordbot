@@ -47,7 +47,7 @@ export default async function server() {
     secret: SESSION_SECRET as string,
     cookie: { secure: COOKIE_REQUIRES_HTTPS, sameSite: 'lax', httpOnly: true },
     saveUninitialized: false,
-    store: new SessionStore() as any
+    store: new SessionStore()
   })
 
   server.register(oauthPlugin, {
@@ -123,6 +123,7 @@ export default async function server() {
 
   server.get('/', async (request, reply) => {
     (request.session as any).xyz = 'hello world'
+    console.log('session is modified?', request.session.isModified())
     return reply.view('home.njk', { base: request.headers['hx-request'] ? 'boosted.njk' : 'base.njk' })
   })
 
