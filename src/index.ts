@@ -1,19 +1,20 @@
-import fastify from 'fastify'
+import { FastifySSEPlugin } from "fastify-sse-v2"
 import oauthPlugin from '@fastify/oauth2'
-import cookie from '@fastify/cookie'
-import session from '@fastify/session'
-import { COOKIE_REQUIRES_HTTPS, SESSION_SECRET, HOST, OAUTH_GITHUB_CLIENT_ID, OAUTH_GITHUB_SECRET, PORT, HOST_ORIGIN } from './config'
-import { SessionStore } from './session'
-import { events, getOctokit } from './db'
-import { findUserByGithubLogin, registerUser } from './domain/users'
-import view from '@fastify/view'
-import path from 'node:path'
-import { FastifySSEPlugin } from "fastify-sse-v2";
-import { once } from 'node:events'
-import fstatic from '@fastify/static'
-import { sendMessage } from './domain/messages'
-import { getLogger } from './logger'
 import cultureShips from 'culture-ships'
+import session from '@fastify/session'
+import fstatic from '@fastify/static'
+import cookie from '@fastify/cookie'
+import { once } from 'node:events'
+import view from '@fastify/view'
+import fastify from 'fastify'
+import path from 'node:path'
+
+import { COOKIE_REQUIRES_HTTPS, SESSION_SECRET, HOST, OAUTH_GITHUB_CLIENT_ID, OAUTH_GITHUB_SECRET, PORT, HOST_ORIGIN } from './config'
+import { findUserByGithubLogin, registerUser } from './domain/users'
+import { sendMessage } from './domain/messages'
+import { events, getOctokit } from './db'
+import { SessionStore } from './session'
+import { getLogger } from './logger'
 
 // Select a ping response. Use the name of an intelligent AI ship from Iain M. Bank's "Culture" SF series.
 // (We can use this to tell when the process reboots, too.)
@@ -46,7 +47,7 @@ export default async function server() {
   server.register(session, {
     secret: SESSION_SECRET as string,
     cookie: { secure: COOKIE_REQUIRES_HTTPS, sameSite: 'lax', httpOnly: true },
-    saveUninitialized: false,
+    saveUninitialized: true,
     store: new SessionStore()
   })
 
@@ -89,7 +90,7 @@ export default async function server() {
       return reply.status(301).header('location', '/').send()
     }
     request.session.github = { oauth: result.token, user: response.data }
-    console.log('saving github data to session', request.session.isModified)
+    console.log('saving github data to session', request.session.isModified())
     return reply.status(301).header('location', '/register').send()
   })
 
