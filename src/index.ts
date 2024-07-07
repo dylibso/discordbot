@@ -6,7 +6,7 @@ import fstatic from '@fastify/static'
 import cookie from '@fastify/cookie'
 import { once } from 'node:events'
 import view from '@fastify/view'
-import fastify from 'fastify'
+import fastify, { FastifyRequest } from 'fastify'
 import path from 'node:path'
 
 import { COOKIE_REQUIRES_HTTPS, SESSION_SECRET, HOST, OAUTH_GITHUB_CLIENT_ID, OAUTH_GITHUB_SECRET, PORT, HOST_ORIGIN } from './config'
@@ -35,6 +35,9 @@ declare module 'fastify' {
 export default async function server() {
   const server = fastify({ logger: getLogger() })
 
+  server.addHook('preHandler', (request: FastifyRequest) => {
+    console.log('request.protocol', request.protocol)
+  })
   server.register(fstatic, {
     root: path.join(__dirname, '..', 'dist', 'static'),
     prefix: '/static/',
@@ -47,7 +50,7 @@ export default async function server() {
   server.register(session, {
     secret: SESSION_SECRET as string,
     cookie: { secure: COOKIE_REQUIRES_HTTPS, sameSite: 'lax', httpOnly: true },
-    saveUninitialized: true,
+    saveUninitialized: false,
     store: new SessionStore()
   })
 
@@ -90,7 +93,6 @@ export default async function server() {
       return reply.status(301).header('location', '/').send()
     }
     request.session.github = { oauth: result.token, user: response.data }
-    console.log('saving github data to session', request.session.isModified())
     return reply.status(301).header('location', '/register').send()
   })
 
@@ -123,8 +125,6 @@ export default async function server() {
   })
 
   server.get('/', async (request, reply) => {
-    (request.session as any).xyz = 'hello world'
-    console.log('session is modified?', request.session.isModified())
     return reply.view('home.njk', { base: request.headers['hx-request'] ? 'boosted.njk' : 'base.njk' })
   })
 
@@ -163,7 +163,6 @@ export default async function server() {
     }
     const message = (request.body as any)?.message
 
-    console.log('sending')
     await sendMessage(request.params.id, request.session.user, message)
   })
 
