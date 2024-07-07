@@ -3,4 +3,5 @@
 .xtp
 *.wasm
 node_modules/
-dist
+dist/
+dist-test/

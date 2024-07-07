@@ -125,10 +125,6 @@ export default async function server() {
     return reply.view('home.njk', { base: request.headers['hx-request'] ? 'boosted.njk' : 'base.njk' })
   })
 
-  server.get('/test', async (request, reply) => {
-    return reply.view('test.njk', { base: 'base.njk', session: request.session })
-  })
-
   server.get('/channel/:id/messages', async (request, reply) => {
     reply.sse(async function* source() {
       let i = 0
