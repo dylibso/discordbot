@@ -6,7 +6,7 @@ import fstatic from '@fastify/static'
 import cookie from '@fastify/cookie'
 import { once } from 'node:events'
 import view from '@fastify/view'
-import fastify, { FastifyRequest } from 'fastify'
+import fastify from 'fastify'
 import path from 'node:path'
 
 import { COOKIE_REQUIRES_HTTPS, SESSION_SECRET, HOST, OAUTH_GITHUB_CLIENT_ID, OAUTH_GITHUB_SECRET, PORT, HOST_ORIGIN } from './config'
