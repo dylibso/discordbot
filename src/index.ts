@@ -88,8 +88,8 @@ export default async function server() {
       request.session.user = user
       return reply.status(301).header('location', '/').send()
     }
-    console.log('saving github data to session', response.data)
     request.session.github = { oauth: result.token, user: response.data }
+    console.log('saving github data to session', request.session.isModified)
     return reply.status(301).header('location', '/register').send()
   })
 
@@ -122,7 +122,12 @@ export default async function server() {
   })
 
   server.get('/', async (request, reply) => {
+    (request.session as any).xyz = 'hello world'
     return reply.view('home.njk', { base: request.headers['hx-request'] ? 'boosted.njk' : 'base.njk' })
+  })
+
+  server.get('/test', async (request, reply) => {
+    return reply.view('test.njk', { base: 'base.njk', session: request.session })
   })
 
   server.get('/channel/:id/messages', async (request, reply) => {
