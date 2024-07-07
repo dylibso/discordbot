@@ -33,11 +33,8 @@ declare module 'fastify' {
 }
 
 export default async function server() {
-  const server = fastify({ logger: getLogger() })
+  const server = fastify({ logger: getLogger(), trustProxy: true })
 
-  server.addHook('preHandler', (request: FastifyRequest) => {
-    console.log('request.protocol', request.protocol)
-  })
   server.register(fstatic, {
     root: path.join(__dirname, '..', 'dist', 'static'),
     prefix: '/static/',
