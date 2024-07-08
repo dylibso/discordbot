@@ -9,7 +9,7 @@ case!)
 
 1. Copy `env.example` to `.env`.
 2. Grab the `GITHUB_OAUTH_CLIENT_ID` and `OAUTH_GITHUB_SECRET` values from 1Password under `discordbot settings`.
-    - Optionally you can set up another GitHub app {#setup-oauth-app}
+    - Optionally you can [set up another GitHub app](#setting-up-local-github-oauth)
 3. Link an XTP app.
     - The app should be on staging or local.
         - For local use `http://localhost:8080`.
@@ -41,7 +41,7 @@ When we switch from xtp-staging to xtp for the deployed service:
 - The testing extension ID needs to go in `.github/workflows/ci.yaml` replacing `EXTENSION_ID`.
 - The prod extension ID needs to go in `.github/workflows/cd.yaml` replacing `EXTENSION_ID`.
 
-### setting up local github oauth {#setup-oauth-app}
+### setting up local github oauth
 
 2. **[Make a GitHub app](https://github.com/settings/applications/new)**.
     - the "Application name" should be something like "discordbot (dev)".
