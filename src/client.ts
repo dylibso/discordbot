@@ -1,7 +1,7 @@
 
 import { Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID } from './config';
-import { findAllMessageHandlers } from './domain/message-handlers';
+import { findMatchingMessageHandlers } from './domain/message-handlers';
 import { getXtp } from './db';
 
 export async function startDiscordClient() {
@@ -28,22 +28,27 @@ export async function startDiscordClient() {
       return;
     }
 
-    const xtp = await getXtp();
-    const handlers = await findAllMessageHandlers();
+    const guild = message.guild || {name: "", id: ""};
 
-    console.log("Incoming message: ", message.content);
+    console.log(`Incoming message in ${guild.name} (${guild.id}): `, message.content);
+    const xtp = await getXtp();
+    const handlers = await findMatchingMessageHandlers(guild.id, message.content);
+
     for (let i = 0; i < handlers.length; i++){
       const handler = handlers[i];
       console.log("Found matching handler: ", handler.id, "regex=" + handler.regex);
-      const regex = new RegExp(handler.regex);
-      if (regex.test(message.content)){
-        try {
-          // TODO: provide more data (message user, channel name, ...) via plugin input
-          const result = await xtp.extensionPoints['message_handlers'].count_vowels(handler.user_id, message.content, {default: "test"});
+      try {
+        // TODO: provide more data (message user, channel name, ...) via plugin input
+        const result = await xtp.extensionPoints['message_handlers'].handle_message(handler.user_id, message.content, {
+          bindingName: handler.plugin_name,
+          default: ""
+        });
+
+        if (result !== null && result!.length > 0){
           await message.reply(result!);
-        } catch (err) {
-          console.error("Error running XTP extension", err);
         }
+      } catch (err) {
+        console.error("Error running XTP extension", err);
       }
     }
   });
