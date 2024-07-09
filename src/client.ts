@@ -1,6 +1,8 @@
 
 import { Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID } from './config';
+import { findAllMessageHandlers } from './domain/message-handlers';
+import { getXtp } from './db';
 
 export async function startDiscordClient() {
   if (!DISCORD_BOT_TOKEN) {
@@ -26,10 +28,22 @@ export async function startDiscordClient() {
       return;
     }
 
-    if (message.content === 'ping') {
-      await message.reply('pong');
-    } else {
-      console.log(message.content);
+    const xtp = await getXtp();
+    const handlers = await findAllMessageHandlers();
+
+    console.log("Incoming message: ", message.content);
+    for (let i = 0; i < handlers.length; i++){
+      const handler = handlers[i];
+      console.log("Found matching handler: ", handler.id, "regex=" + handler.regex);
+      const regex = new RegExp(handler.regex);
+      if (regex.test(message.content)){
+        try {
+          const result = await xtp.extensionPoints['message_handlers'].count_vowels(handler.user_id, message.content, {default: "test"});
+          await message.reply(result!);
+        } catch (err) {
+          console.error("Error running XTP extension", err);
+        }
+      }
     }
   });
 
