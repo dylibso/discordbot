@@ -37,3 +37,9 @@ if (!DISCORD_BOT_TOKEN){
   console.warn("Warning: no Discord bot token configured");
 }
 // assert(DISCORD_BOT_TOKEN, 'Need to set DISCORD_BOT_TOKEN env var');
+
+export const DISCORD_BOT_CLIENT_ID = process.env.DISCORD_BOT_CLIENT_ID;
+if (!DISCORD_BOT_CLIENT_ID){
+  console.warn("Warning: no Discord bot client id configured");
+}
+//assert(DISCORD_BOT_CLIENT_ID, 'Need to set DISCORD_BOT_CLIENT_ID env var');
