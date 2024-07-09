@@ -1,8 +1,12 @@
 
 import { Client, GatewayIntentBits } from 'discord.js';
-import 'dotenv/config';
+import { DISCORD_BOT_TOKEN} from './config';
 
-export function startDiscordClient(): Client {
+export function startDiscordClient() {
+  if (!DISCORD_BOT_TOKEN) {
+    return;
+  }
+  
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -27,6 +31,5 @@ export function startDiscordClient(): Client {
     }
   });
 
-  client.login(process.env.DISCORD_BOT_TOKEN);
-  return client;
+  client.login(DISCORD_BOT_TOKEN);
 }

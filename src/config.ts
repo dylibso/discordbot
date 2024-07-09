@@ -33,4 +33,7 @@ assert(SESSION_SECRET, 'Need to set SESSION_SECRET env var')
 assert(SESSION_SECRET.length >= 32, 'SESSION_SECRET must be at least 32 characters long')
 
 export const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-assert(DISCORD_BOT_TOKEN, 'Need to set DISCORD_BOT_TOKEN env var');
+if (!DISCORD_BOT_TOKEN){
+  console.warn("Warning: no Discord bot token configured");
+}
+// assert(DISCORD_BOT_TOKEN, 'Need to set DISCORD_BOT_TOKEN env var');
