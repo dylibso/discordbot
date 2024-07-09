@@ -38,6 +38,7 @@ export async function startDiscordClient() {
       const regex = new RegExp(handler.regex);
       if (regex.test(message.content)){
         try {
+          // TODO: provide more data (message user, channel name, ...) via plugin input
           const result = await xtp.extensionPoints['message_handlers'].count_vowels(handler.user_id, message.content, {default: "test"});
           await message.reply(result!);
         } catch (err) {
