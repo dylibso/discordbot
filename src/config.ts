@@ -31,3 +31,6 @@ export const SESSION_SECRET = process.env.NODE_TEST_CONTEXT ? 'a'.repeat(32) : p
 assert(typeof SESSION_SECRET === 'string', 'SESSION_SECRET must be a string')
 assert(SESSION_SECRET, 'Need to set SESSION_SECRET env var')
 assert(SESSION_SECRET.length >= 32, 'SESSION_SECRET must be at least 32 characters long')
+
+export const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+assert(DISCORD_BOT_TOKEN, 'Need to set DISCORD_BOT_TOKEN env var');

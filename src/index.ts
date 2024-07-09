@@ -15,6 +15,7 @@ import { sendMessage } from './domain/messages'
 import { events, getOctokit } from './db'
 import { SessionStore } from './session'
 import { getLogger } from './logger'
+import { startDiscordClient } from './client'
 
 // Select a ping response. Use the name of an intelligent AI ship from Iain M. Bank's "Culture" SF series.
 // (We can use this to tell when the process reboots, too.)
@@ -167,6 +168,8 @@ export default async function server() {
     })
   })
 }
+
+startDiscordClient();
 
 server().then(({ address }: any) => {
   console.log(`Server listening at ${address}`)

@@ -8,8 +8,9 @@ as the credentials. (If you're running xtp locally, this should already be the
 case!)
 
 1. Copy `env.example` to `.env`.
-2. Grab the `GITHUB_OAUTH_CLIENT_ID` and `OAUTH_GITHUB_SECRET` values from 1Password under `discordbot settings`.
+2. Grab the `GITHUB_OAUTH_CLIENT_ID` and `OAUTH_GITHUB_SECRET`, `DISCORD_BOT_TOKEN` values from 1Password under `discordbot settings`.
     - Optionally you can [set up another GitHub app](#setting-up-local-github-oauth)
+    - The link to install the Discord bot is also on 1password, this can be used to install the app on a private server
 3. Link an XTP app.
     - The app should be on staging or local.
         - For local use `http://localhost:8080`.

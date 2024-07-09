@@ -46,6 +46,7 @@
     "@octokit/auth-oauth-user": "^5.0.2",
     "@octokit/core": "^6.0.1",
     "cacache": "^18.0.2",
+    "discord.js": "^14.15.3",
     "fastify": "^4.26.2",
     "fastify-sse-v2": "^4.0.0",
     "nunjucks": "^3.2.4",
