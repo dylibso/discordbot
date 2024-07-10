@@ -61,7 +61,7 @@ export async function findUserByGithubLogin(githubLogin: string) {
   return user
 }
 
-export async function findUserByUsername(username: string) {
+export async function findUserByUsername(username: string): Promise<User | null> {
   const db = await getDatabaseConnection()
 
   const { rows: [user = null] } = await db.query(`
@@ -73,7 +73,7 @@ export async function findUserByUsername(username: string) {
     LIMIT 1
   `, [username])
 
-  return user
+  return user as User | null
 }
 
 export async function updateUser(db: any, user: User) {
@@ -159,7 +159,10 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
     })
   } catch (e: any) {
     if (e.code === '23505' && e.constraint === 'users_username_idx') {
-      return await findUserByUsername(registration.username)
+      const user = await findUserByUsername(registration.username)
+      if (user) {
+        return user
+      }
     }
 
     throw e

@@ -1,9 +1,9 @@
 
 import { Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID } from './config';
-import { findMatchingMessageHandlers } from './domain/message-handlers';
+import { findMatchingMessageHandlers, registerMessageHandler } from './domain/message-handlers';
 import { getXtp } from './db';
-import { getXtpData, registerUser } from './domain/users';
+import { findUserByUsername, getXtpData, registerUser } from './domain/users';
 
 export async function startDiscordClient() {
   if (!DISCORD_BOT_TOKEN) {
@@ -73,23 +73,46 @@ export async function startDiscordClient() {
         break;
 
       case 'register':
-        const discordUser = command.user;
+        await handleRegisterCommand(command);
 
-        const dbUser = await registerUser({
-          username: discordUser.tag,
-          discord: {
-            id: discordUser.id,
-            discriminator: discordUser.discriminator,
-            username: discordUser.username,
-            avatar: discordUser.avatar,
-            hexAccentColor: discordUser.accentColor || undefined,
-          }
-        })
+        break;
+      case 'subscribe':
+        await handleSubscribeCommand(command);
+        break;
+    }
+  })
 
-        const xtp = getXtpData(dbUser);
+  client.login(DISCORD_BOT_TOKEN);
+}
 
-        await command.reply({
-          content: `To get started, please activate your new XTP Host by clicking the link below.
+function isValidRegex(pattern: string): boolean {
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
+async function handleRegisterCommand(command: CommandInteraction) {
+  const discordUser = command.user;
+
+  const dbUser = await registerUser({
+    username: discordUser.tag,
+    discord: {
+      id: discordUser.id,
+      discriminator: discordUser.discriminator,
+      username: discordUser.username,
+      avatar: discordUser.avatar,
+      hexAccentColor: discordUser.accentColor || undefined,
+    }
+  });
+
+  const xtp = getXtpData(dbUser);
+
+  await command.reply({
+    content: `To get started, please activate your new XTP Host by clicking the link below.
   
   ${xtp.inviteLink}
   Once your account is active, you can dive right in and start building your first plugin.
@@ -97,14 +120,8 @@ export async function startDiscordClient() {
   XTP Product docs can be found here: https://docs.xtp.dylibso.com/
   
   TODO: Add more helpful information here.`,
-          ephemeral: true,
-        });
-
-        break;
-    }
-  })
-
-  client.login(DISCORD_BOT_TOKEN);
+    ephemeral: true,
+  });
 }
 
 async function refreshCommands(rest: REST) {
@@ -132,6 +149,24 @@ async function refreshCommands(rest: REST) {
     {
       name: 'register',
       description: 'Register your account with the bot'
+    },
+    {
+      name: 'subscribe',
+      description: 'Subscribes to messages',
+      options: [
+        {
+          name: 'regex',
+          type: 3, // STRING type
+          description: 'The regex to match',
+          required: true,
+        },
+        {
+          name: 'plugin',
+          type: 3, // STRING type
+          description: 'The plugin to run',
+          required: true,
+        }
+      ]
     }
   ];
 
@@ -148,3 +183,52 @@ async function refreshCommands(rest: REST) {
     console.error(error);
   }
 }
+async function handleSubscribeCommand(command: CommandInteraction) {
+  const regex = command.options.get('regex')?.value as string;
+  const plugin = command.options.get('plugin')?.value as string;
+  const guild = command.guildId;
+
+  if (!guild) {
+    // how is this possible?
+    await command.reply({
+      content: "This command must be run in a guild",
+      ephemeral: true,
+    })
+    return;
+  }
+
+  if (!regex || !plugin) {
+    await command.reply({
+      content: "You need to provide a regex and a plugin name"
+    });
+  }
+
+  if (!isValidRegex(regex)) {
+    await command.reply({
+      content: "Please provide a valid regex pattern. Hint: use https://regex101.com/ to test your regex."
+    });
+    return;
+  }
+
+  const dbUser = await findUserByUsername(command.user.tag);
+  if (!dbUser) {
+    await command.reply({
+      content: "You need to register your account first. Use the /register command",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await registerMessageHandler({
+    plugin_name: plugin,
+    regex: regex,
+    user_id: dbUser.id,
+    guild: guild,
+  });
+
+  await command.reply({
+    content: `Subscribed to messages matching \`${regex}\` with plugin \`${plugin}\``,
+    ephemeral: true,
+  });
+}
+
