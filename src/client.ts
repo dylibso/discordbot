@@ -3,20 +3,22 @@ import { Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'dis
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID } from './config';
 import { findMatchingMessageHandlers } from './domain/message-handlers';
 import { getXtp } from './db';
+import { getXtpData, registerUser } from './domain/users';
 
 export async function startDiscordClient() {
   if (!DISCORD_BOT_TOKEN) {
     return;
   }
 
-  await refreshCommands(DISCORD_BOT_TOKEN);
+  const rest = new REST({ version: '9' }).setToken(DISCORD_BOT_TOKEN);
+  await refreshCommands(rest);
 
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent
-    ]
+      GatewayIntentBits.MessageContent,
+    ],
   });
 
   client.on('ready', () => {
@@ -28,13 +30,13 @@ export async function startDiscordClient() {
       return;
     }
 
-    const guild = message.guild || {name: "", id: ""};
+    const guild = message.guild || { name: "", id: "" };
 
     console.log(`Incoming message in ${guild.name} (${guild.id}): `, message.content);
     const xtp = await getXtp();
     const handlers = await findMatchingMessageHandlers(guild.id, message.content);
 
-    for (let i = 0; i < handlers.length; i++){
+    for (let i = 0; i < handlers.length; i++) {
       const handler = handlers[i];
       console.log("Found matching handler: ", handler.id, "regex=" + handler.regex);
       try {
@@ -45,7 +47,7 @@ export async function startDiscordClient() {
           default: ""
         });
 
-        if (result !== null && result!.length > 0){
+        if (result !== null && result!.length > 0) {
           await message.reply(result!);
         }
       } catch (err) {
@@ -71,7 +73,33 @@ export async function startDiscordClient() {
         break;
 
       case 'register':
-        await command.reply('Please register your account at https://www.youtube.com/watch?v=EE-xtCF3T94');
+        const discordUser = command.user;
+
+        const dbUser = await registerUser({
+          username: discordUser.tag,
+          discord: {
+            id: discordUser.id,
+            discriminator: discordUser.discriminator,
+            username: discordUser.username,
+            avatar: discordUser.avatar,
+            hexAccentColor: discordUser.accentColor || undefined,
+          }
+        })
+
+        const xtp = getXtpData(dbUser);
+
+        await command.reply({
+          content: `To get started, please activate your new XTP Host by clicking the link below.
+  
+  ${xtp.inviteLink}
+  Once your account is active, you can dive right in and start building your first plugin.
+  
+  XTP Product docs can be found here: https://docs.xtp.dylibso.com/
+  
+  TODO: Add more helpful information here.`,
+          ephemeral: true,
+        });
+
         break;
     }
   })
@@ -79,12 +107,10 @@ export async function startDiscordClient() {
   client.login(DISCORD_BOT_TOKEN);
 }
 
-async function refreshCommands(token: string) {
+async function refreshCommands(rest: REST) {
   if (!DISCORD_BOT_CLIENT_ID) {
     return;
   }
-
-  const rest = new REST({ version: '9' }).setToken(token);
 
   const commands = [
     {

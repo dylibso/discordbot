@@ -34,7 +34,7 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@dylibso/xtp": "0.0.0-rc4",
+    "@dylibso/xtp": "^0.0.0-rc5",
     "@extism/extism": "^1.0.3",
     "@fastify/cookie": "^9.3.1",
     "@fastify/oauth2": "^7.8.0",
