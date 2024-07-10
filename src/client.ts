@@ -39,7 +39,7 @@ export async function startDiscordClient() {
     }
 
     if (DISCORD_GUILD_FILTER.size && !DISCORD_GUILD_FILTER.has(guild.name)) {
-      console.log(`skipping message; not in guild filter (got="${guild.name}"; valid=${DISCORD_GUILD_FILTER})`)
+      console.log(`skipping message; not in guild filter (got="${guild.name}"; valid="${[...DISCORD_GUILD_FILTER].join('", "')}")`)
       return
     }
 
