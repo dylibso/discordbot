@@ -1,10 +1,11 @@
-import { OAUTH_GITHUB_CLIENT_ID, OAUTH_GITHUB_SECRET, PGURL } from './config';
-import EventEmitter from 'node:events'
-import createClient from '@dylibso/xtp';
 import { CurrentPlugin } from '@extism/extism';
-import { SendMessageRequest, forwardMessage } from './domain/messages';
+import createClient from '@dylibso/xtp';
+import EventEmitter from 'node:events'
 import pg from 'pg'
+
+import { SendMessageRequest, forwardMessage } from './domain/messages';
 import { getLogger } from './logger';
+import { PGURL } from './config';
 
 let db: any
 export async function getDatabaseConnection() {
@@ -30,20 +31,6 @@ export async function getDatabaseConnection() {
 }
 
 export const events = new EventEmitter()
-
-export async function getOctokit({ token }: { token: string }) {
-  const octoOauth = await import('@octokit/auth-oauth-user')
-  const { Octokit } = await import('@octokit/core')
-
-  return new Octokit({
-    authStrategy: octoOauth.createOAuthUserAuth,
-    auth: {
-      clientId: OAUTH_GITHUB_CLIENT_ID,
-      clientSecret: OAUTH_GITHUB_SECRET,
-      token: token
-    }
-  })
-}
 
 let xtp
 export async function getXtp(): ReturnType<typeof createClient> {

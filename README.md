@@ -8,10 +8,32 @@ as the credentials. (If you're running xtp locally, this should already be the
 case!)
 
 1. Copy `env.example` to `.env`.
-2. Grab the `GITHUB_OAUTH_CLIENT_ID` and `OAUTH_GITHUB_SECRET`, `DISCORD_BOT_TOKEN` values from 1Password under `discordbot settings`.
-    - Optionally you can [set up another GitHub app](#setting-up-local-github-oauth)
-    - The link to install the Discord bot is also on 1password, this can be used to install the app on a private server
-3. Link an XTP app.
+2. Create a Discord test server for local dev.
+3. Create a Discord app and bot.
+    - Click "New Application" on [the Discord dev portal](https://discord.com/developers/applications).
+    - Call it `xtp (local)`
+    - Navigate to the "Installation" drawer tab.
+        - Make sure only "Guild install" is checked.
+        - Under "default install settings":
+            - Scopes: Add "application.commands" and "bot".
+            - Permissions:
+                - Add Reactions
+                - Attach files
+                - Ban members
+                - Embed links
+                - Manage Messages
+                - Read message History
+                - Read messages / view channels
+                - Send Messages
+                - Use Slash commands
+            - To add the bot to your server, click the link under "Install Link".
+    - Navigate to the "Bot" drawer tab.
+        - Click the "Reset Token" button. **Save the token as `DISCORD_BOT_TOKEN`**.
+        - Uncheck "public bot".
+        - Check "PRESENCE INTENT".
+        - Check "SERVER MEMBERS INTENT".
+        - Check "MESSAGE CONTENT INTENT".
+4. Link an XTP app.
     - The app should be on staging or local.
         - For local use `http://localhost:8080`.
         - For staging use `https://xtp-staging.dylibso.com`

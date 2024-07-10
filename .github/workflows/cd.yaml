@@ -82,7 +82,7 @@ jobs:
 
       - name: update the schema
         run: |
-          body="$(jq -rcM -n --arg content "$(cat plugin.yaml)" '{"name":"chat", "schema": $content}')"
+          body="$(jq -rcM -n --arg content "$(cat plugin.yaml)" '{"name":"message_handler", "schema": $content}')"
           EXTENSION_ID=ext_01j24z4yc2emetf0hysrnyg41j
           curl -sLfi \
             -H "Authorization: Bearer $XTP_TOKEN" \

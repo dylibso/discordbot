@@ -3,48 +3,14 @@
 #
 # We should keep the XTP app that the deployed service uses in sync with this
 # schema.
----
-version: v1-draft
 exports:
-  - name: onUserSendMessageRequest
-    description: >-
-      This export is called whenever a user requests that a message be sent to the channel.
-      Returning `false` blocks the message from further processing.
-    codeSamples:
-      - lang: typescript
-        source: |
-          function onUserSendMessageRequest(req: SendMessageRequest) {
-            const { forwardMessage } = Host.getFunctions();
-            req.message = req.message.toUpperCase()
-            forwardMessage(req)
-          }
+  - name: handle_message
     input:
-        $ref: '#/schemas/SendMessageRequest'
-imports:
-    - name: forwardMessage
-      input:
-        $ref: '#/schemas/SendMessageRequest'
-      output:
-        type: boolean
-        description: boolean encoded as json
-        contentType: application/json
-schemas:
-    - name: User
-      description: A representation of a user
-      contentType: application/json
-      properties:
-        - name: username
-          description: A username
-          type: string
-        - name: id
-          description: A UUID representing the user
-          type: string
-    - name: SendMessageRequest
-      description: A user requests to send a message to the channel
-      contentType: application/json
-      properties:
-        - name: user
-          $ref: '#/schemas/User'
-        - name: message
-          type: string
-          description: 'the message'
+      type: string
+      contentType: text/plain; charset=UTF-8
+      description: The message sent to Discord
+    output:
+      type: string
+      contentType: text/plain; charset=UTF-8
+      description: The Bot's reply
+version: v1-draft

@@ -2,7 +2,7 @@ import { ChannelType, Client, CommandInteraction, GatewayIntentBits, REST, Route
 import safe from 'safe-regex';
 
 import { findMatchingMessageHandlers, registerMessageHandler } from './domain/message-handlers';
-import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID } from './config';
+import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER, DISCORD_CHANNEL_FILTER } from './config';
 import { findUserByUsername, getXtpData, registerUser } from './domain/users';
 import { getXtp } from './db';
 
@@ -34,8 +34,20 @@ export async function startDiscordClient() {
     const guild = message.guild || { name: "", id: "" };
 
     if (message.channel.type !== ChannelType.GuildText) {
+      console.log(`skipping message; channel type was not GuildText`)
       return
     }
+
+    if (DISCORD_GUILD_FILTER.size && !DISCORD_GUILD_FILTER.has(guild.name)) {
+      console.log(`skipping message; not in guild filter (got="${guild.name}"; valid=${DISCORD_GUILD_FILTER})`)
+      return
+    }
+
+    if (DISCORD_CHANNEL_FILTER.size && !DISCORD_CHANNEL_FILTER.has(message.channel.name)) {
+      console.log(`skipping message; not in channel filter (guild="${guild.name}"; channel="${message.channel.name}")`)
+      return
+    }
+
     console.log(`Incoming message in "${guild.name}" "#${message.channel.name}" (${guild.id}): `, message.content);
     const xtp = await getXtp();
     const handlers = await findMatchingMessageHandlers(guild.id, message.content);
