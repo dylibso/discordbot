@@ -6,12 +6,28 @@ export interface User {
   data: Record<string, any>,
   created_at: Date,
   updated_at: Date,
-  deleted_at?: Date | null
+  deleted_at?: Date | null,
+}
+
+export interface XtpData {
+  inviteLink?: string
+}
+
+export function getXtpData(user: User) {
+  return user.data.xtp as XtpData
+}
+
+function patchXtpData(user: User, data: Partial<XtpData>) {
+  user.data.xtp = { ...getXtpData(user), ...data }
 }
 
 export interface OAuthGitHubCredentials {
   oauth: { access_token: string, scope: string, token_type: string },
   user: { login: string, avatar_url: string, name: string, [k: string]: any },
+}
+
+export interface DiscordCredentials {
+  id: string, username: string, discriminator: string, avatar?: string | null, hexAccentColor?: number, [k: string]: any
 }
 
 export interface EmailPassword {
@@ -23,6 +39,7 @@ export interface RegisterUser {
   username: string,
   github?: OAuthGitHubCredentials
   emailPassword?: EmailPassword
+  discord?: DiscordCredentials
 }
 
 export async function findUserByGithubLogin(githubLogin: string) {
@@ -44,51 +61,107 @@ export async function findUserByGithubLogin(githubLogin: string) {
   return user
 }
 
+export async function findUserByUsername(username: string) {
+  const db = await getDatabaseConnection()
+
+  const { rows: [user = null] } = await db.query(`
+    SELECT
+      "users".*
+    FROM "users"
+    WHERE
+      "users"."username" = $1
+    LIMIT 1
+  `, [username])
+
+  return user
+}
+
+export async function updateUser(db: any, user: User) {
+  const { rows: [updatedUser] } = await db.query(`
+    UPDATE "users"
+    SET
+      username = $2,
+      data = $3
+    WHERE
+      id = $1
+    RETURNING *;
+  `, [user.id, user.username, user.data])
+
+  return updatedUser
+}
+
 export async function registerUser(registration: RegisterUser): Promise<User> {
   const db = await getDatabaseConnection()
   const xtp = await getXtp()
 
-  return await db.transaction(async (db: any) => {
-    console.log('running create user row', registration)
-    const result = await db.query(`
-      INSERT INTO "users" (
-        username
-      ) VALUES (
-        $1
-      ) RETURNING *;
-    `, [registration.username])
-
-    const { rows: [user] } = result
-
-    if (registration.github) {
-      console.log('running create credential row')
-      await db.query(`
-        INSERT INTO "credentials" (
-          user_id,
-          "type",
-          data
+  try {
+    return await db.transaction(async (db: any) => {
+      console.log('running create user row', registration)
+      const result = await db.query(`
+        INSERT INTO "users" (
+          username
         ) VALUES (
-          $1,
-          'oauth-github',
-          $2::jsonb
-        );
-      `, [user.id, JSON.stringify(registration.github.user)])
+          $1
+        ) RETURNING *;
+      `, [registration.username])
 
-      console.log('sending guest invite')
-      await xtp.inviteGuest({
-        name: registration.github.user.name,
-        email: registration.github.user.email,
-        guestKey: user.id
-      }).catch(err => {
-        console.error(err)
-      })
+      const { rows: [user] } = result
+
+      if (registration.github) {
+        console.log('running create credential row')
+        await db.query(`
+          INSERT INTO "credentials" (
+            user_id,
+            "type",
+            data
+          ) VALUES (
+            $1,
+            'oauth-github',
+            $2::jsonb
+          );
+        `, [user.id, JSON.stringify(registration.github.user)])
+
+        console.log('sending guest invite')
+        await xtp.inviteGuest({
+          name: registration.github.user.name,
+          email: registration.github.user.email,
+          guestKey: user.id,
+          deliveryMethod: 'email'
+        }).catch(err => {
+          console.error(err)
+        })
+      } else if (registration.discord) {
+        console.log('running create credential row')
+        await db.query(`
+          INSERT INTO "credentials" (
+            user_id,
+            "type",
+            data
+          ) VALUES (
+            $1,
+            'discord',
+            $2::jsonb
+          );
+        `, [user.id, JSON.stringify(registration.discord)])
+
+        const response = await xtp.inviteGuest({ guestKey: user.id, deliveryMethod: 'link' });
+        patchXtpData(user, { inviteLink: response.link.link })
+
+        await updateUser(db, user)
+      }
+
+      if (registration.emailPassword) {
+        // TODO
+      }
+
+
+      return user
+    })
+  } catch (e: any) {
+    if (e.code === '23505' && e.constraint === 'users_username_idx') {
+      return await findUserByUsername(registration.username)
     }
 
-    if (registration.emailPassword) {
-      // TODO
-    }
-
-
-    return user
-  })
+    throw e
+  }
 }

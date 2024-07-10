@@ -1,0 +1,1 @@
+alter type credential_type add value 'discord';
