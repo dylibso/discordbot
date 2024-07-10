@@ -22,6 +22,7 @@
     "@types/cookie": "^0.6.0",
     "@types/node": "^20.11.0",
     "@types/pg": "^8.11.4",
+    "@types/safe-regex": "^1.1.6",
     "c8": "^9.1.0",
     "concurrently": "^8.2.2",
     "culture-ships": "^1.0.3",
@@ -50,6 +51,7 @@
     "fastify": "^4.26.2",
     "fastify-sse-v2": "^4.0.0",
     "nunjucks": "^3.2.4",
-    "pg": "^8.11.4"
+    "pg": "^8.11.4",
+    "safe-regex": "^2.1.1"
   }
 }

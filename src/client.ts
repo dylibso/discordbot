@@ -1,9 +1,10 @@
+import { ChannelType, Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
+import safe from 'safe-regex';
 
-import { Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
-import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID } from './config';
 import { findMatchingMessageHandlers, registerMessageHandler } from './domain/message-handlers';
-import { getXtp } from './db';
+import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID } from './config';
 import { findUserByUsername, getXtpData, registerUser } from './domain/users';
+import { getXtp } from './db';
 
 export async function startDiscordClient() {
   if (!DISCORD_BOT_TOKEN) {
@@ -32,7 +33,10 @@ export async function startDiscordClient() {
 
     const guild = message.guild || { name: "", id: "" };
 
-    console.log(`Incoming message in ${guild.name} (${guild.id}): `, message.content);
+    if (message.channel.type !== ChannelType.GuildText) {
+      return
+    }
+    console.log(`Incoming message in "${guild.name}" "#${message.channel.name}" (${guild.id}): `, message.content);
     const xtp = await getXtp();
     const handlers = await findMatchingMessageHandlers(guild.id, message.content);
 
@@ -88,10 +92,15 @@ export async function startDiscordClient() {
 function isValidRegex(pattern: string): boolean {
   try {
     new RegExp(pattern);
-    return true;
   } catch {
     return false;
   }
+
+  if (!safe(pattern)) {
+    return false;
+  }
+
+  return true;
 }
 
 
