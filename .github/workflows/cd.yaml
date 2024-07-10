@@ -45,8 +45,8 @@ jobs:
       PGURL: ${{ secrets.PGURL }}
       FORCE_PRETTY_OUTPUT: true
       HOST_SECRET: stub value
-      OAUTH_GITHUB_CLIENT_ID: stub value
-      OAUTH_GITHUB_SECRET: stub value
+      DISCORD_BOT_TOKEN: stub value
+      DISCORD_BOT_CLIENT_ID: stub value
       SESSION_SECRET: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa any value is fine as long as its 32 chars long"
 
     steps:
