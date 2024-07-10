@@ -39,6 +39,7 @@ export async function startDiscordClient() {
       console.log("Found matching handler: ", handler.id, "regex=" + handler.regex);
       try {
         // TODO: provide more data (message user, channel name, ...) via plugin input
+        // TODO: make sure we use handler.user_id for the xtp guest key (or change this if we use something else)
         const result = await xtp.extensionPoints['message_handlers'].handle_message(handler.user_id, message.content, {
           bindingName: handler.plugin_name,
           default: ""
