@@ -60,52 +60,6 @@ export async function startDiscordClient(logger: Logger) {
     }, {}, message.channel.name)
   });
 
-  /*
-  client.on('messageReactionAdd', async (reaction, user) => {
-    if (reaction.message.channel.type !== ChannelType.GuildText) {
-      console.log(`skipping message; channel type was not GuildText`)
-      return
-    }
-
-    if (!reaction.message.guild) {
-      return
-    }
-    const xtp = await getXtp();
-    const handlers = await findMatchingReactionHandlers(reaction.message.guild!.name, reaction.message.channel!.name, reaction.message.id);
-
-    const hrtime = process.hrtime();
-    const promises = [];
-    for (const handler of handlers) {
-      promises.push(xtp.extensionPoints.events.handle(handler.user_id, {
-        channel: reaction.message.channel.name,
-        guild: reaction.message.guild.name,
-        reaction: {
-          from: user.username,
-          with: reaction.emoji.name || reaction.emoji.id,
-        },
-      }, {
-        bindingName: handler.plugin_name,
-        default: {}
-      }).then(
-        _ => [, process.hrtime(hrtime)],
-        err => [err,]
-      ));
-    }
-
-    let idx = 0;
-    for (const result of await Promise.allSettled(promises)) {
-      if (result.status === 'rejected') {
-        console.error(handlers[idx].user_id, handlers[idx].plugin_name, result.reason)
-      } else {
-        console.log(handlers[idx].user_id, handlers[idx].plugin_name, result.value)
-      }
-
-      ++idx;
-    }
-
-    console.log(user)
-  })*/
-
   client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) {
       return;
@@ -278,7 +232,6 @@ async function handleListenCommand(command: CommandInteraction) {
     return;
   }
 
-  console.log(command.channel)
   await registerMessageContentInterest({
     pluginName: plugin,
     regex: regex,
