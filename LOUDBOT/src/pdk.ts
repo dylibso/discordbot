@@ -11,11 +11,6 @@ export class IncomingEvent {
    */
   // @ts-expect-error TS2564
   channel: string;
-  /**
-   * The server the message was received in
-   */
-  // @ts-expect-error TS2564
-  guild: string;
 }
 
 /**
@@ -113,13 +108,11 @@ export class IncomingMessage {
   /**
    * The message text
    */
-  // @ts-expect-error TS2564
-  message: string;
+  content?: string;
   /**
    * The author of the message
    */
-  // @ts-expect-error TS2564
-  author: string;
+  author: any;
 }
 
 /**
@@ -134,13 +127,7 @@ export class OutgoingMessage {
   /**
    * The channel the message was received in
    */
-  // @ts-expect-error TS2564
-  channel: string;
-  /**
-   * The server the message was received in
-   */
-  // @ts-expect-error TS2564
-  guild: string;
+  channel?: string;
 }
 
 /**
@@ -157,15 +144,7 @@ export class Result {
   errorCode?: number;
 }
 
-export function sendMessage(input: OutgoingMessage): Result {
-  const mem = Memory.fromJsonObject(input as any);
-
-  const ptr = hostFunctions.sendMessage(mem.offset);
-
-  return Memory.find(ptr).readJsonObject();
-}
-
-export function react(input: IncomingReaction): Result {
+export function react(input: OutgoingReaction): Result {
   const mem = Memory.fromJsonObject(input as any);
 
   const ptr = hostFunctions.react(mem.offset);
@@ -177,6 +156,22 @@ export function request(input: OutgoingRequest): Result {
   const mem = Memory.fromJsonObject(input as any);
 
   const ptr = hostFunctions.request(mem.offset);
+
+  return Memory.find(ptr).readJsonObject();
+}
+
+export function sendMessage(input: OutgoingMessage): Result {
+  const mem = Memory.fromJsonObject(input as any);
+
+  const ptr = hostFunctions.sendMessage(mem.offset);
+
+  return Memory.find(ptr).readJsonObject();
+}
+
+export function watchMessage(input: string): Result {
+  const mem = Memory.fromString(input);
+
+  const ptr = hostFunctions.watchMessage(mem.offset);
 
   return Memory.find(ptr).readJsonObject();
 }

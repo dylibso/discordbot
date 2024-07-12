@@ -32,14 +32,14 @@ imports:
     input:
       type: string
       description: the id of a message to watch
-      contentType: text/plain
+      contentType: text/plain; charset=UTF-8
     output:
       $ref: "#/schemas/Result"
 
 schemas:
   - name: IncomingEvent
     description: An incoming event
-    required: ['channel', 'guild']
+    required: ['channel']
     contentType: application/json
     properties:
       - name: message
@@ -50,9 +50,6 @@ schemas:
       - name: channel
         type: string
         description: The channel the message was received in
-      - name: guild
-        type: string
-        description: The server the message was received in
 
   - name: OutgoingRequest
     description: An HTTP request
@@ -76,7 +73,7 @@ schemas:
 
   - name: OutgoingReaction
     description: send a reaction
-    required: ['messageId', 'emoji']
+    required: ['messageId', 'channel', 'emoji']
     contentType: application/json
     properties:
       - name: messageId
@@ -138,7 +135,7 @@ schemas:
 
   - name: OutgoingMessage
     description: An outgoing message
-    required: ['message', 'channel', 'guild']
+    required: ['message']
     contentType: application/json
     properties:
       - name: message
@@ -147,9 +144,6 @@ schemas:
       - name: channel
         type: string
         description: The channel the message was received in
-      - name: guild
-        type: string
-        description: The server the message was received in
 
   - name: Result
     description: a result

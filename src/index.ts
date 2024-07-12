@@ -28,7 +28,10 @@ declare module 'fastify' {
 }
 
 export default async function server() {
-  const server = fastify({ logger: getLogger(), trustProxy: true })
+  const logger = getLogger()
+  const server = fastify({ logger, trustProxy: true })
+
+  await startDiscordClient(logger);
 
   server.register(fstatic, {
     root: path.join(__dirname, '..', 'dist', 'static'),
@@ -65,8 +68,6 @@ export default async function server() {
     })
   })
 }
-
-startDiscordClient();
 
 server().then(({ address }: any) => {
   console.log(`Server listening at ${address}`)

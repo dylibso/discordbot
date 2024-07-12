@@ -1,9 +1,9 @@
 import {
   IncomingEvent,
-  OutgoingMessage,
+  OutgoingReaction,
   Result,
-  IncomingReaction,
   OutgoingRequest,
+  OutgoingMessage,
 } from "./pdk";
 
 import * as main from "./main";

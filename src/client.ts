@@ -1,18 +1,20 @@
 import { ChannelType, Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
 import safe from 'safe-regex';
 
-import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER, DISCORD_CHANNEL_FILTER } from './config';
+import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER } from './config';
 import { findUserByUsername, getXtpData, registerUser } from './domain/users';
-import { executeHandlers, fetchByContentInterest } from './domain/interests';
-import { registerMessageHandler } from './domain/message-handlers';
+import { executeHandlers, fetchByContentInterest, registerMessageContentInterest } from './domain/interests';
+import { getLogger } from './logger';
 
-export async function startDiscordClient() {
+type Logger = ReturnType<typeof getLogger>
+
+export async function startDiscordClient(logger: Logger) {
   if (!DISCORD_BOT_TOKEN) {
     return;
   }
 
   const rest = new REST({ version: '9' }).setToken(DISCORD_BOT_TOKEN);
-  await refreshCommands(rest);
+  await refreshCommands(rest, logger);
 
   const client = new Client({
     intents: [
@@ -25,7 +27,7 @@ export async function startDiscordClient() {
   });
 
   client.on('ready', () => {
-    console.log(`Logged in as ${client.user!.tag}!`);
+    logger.info(`Logged in as ${client.user!.tag}!`);
   });
 
   client.on('messageCreate', async message => {
@@ -36,31 +38,26 @@ export async function startDiscordClient() {
     const guild = message.guild || { name: "", id: "" };
 
     if (message.channel.type !== ChannelType.GuildText) {
-      console.log(`skipping message; channel type was not GuildText`)
+      logger.info(`skipping message; channel type was not GuildText`)
       return
     }
 
     if (DISCORD_GUILD_FILTER.size && !DISCORD_GUILD_FILTER.has(guild.name)) {
-      console.log(`skipping message; not in guild filter (got="${guild.name}"; valid="${[...DISCORD_GUILD_FILTER].join('", "')}")`)
+      logger.info(`skipping message; not in guild filter (got="${guild.name}"; valid="${[...DISCORD_GUILD_FILTER].join('", "')}")`)
       return
     }
 
-    if (DISCORD_CHANNEL_FILTER.size && !DISCORD_CHANNEL_FILTER.has(message.channel.name)) {
-      console.log(`skipping message; not in channel filter (guild="${guild.name}"; channel="${message.channel.name}")`)
-      return
-    }
-
-    console.log(`Incoming message in "${guild.name}" "#${message.channel.name}" (${guild.id}): `, message.content);
+    logger.info(`Incoming message in "${guild.name}" "#${message.channel.name}" (${guild.id}): `, message.content);
     const handlers = await fetchByContentInterest({ guild: guild.id, channel: message.channel.name, content: message.content });
     await executeHandlers(client, handlers, {
       channel: message.channel.name,
-      guild: guild.name,
+      guild: guild.id,
       message: {
         id: message.id,
         content: message.content,
         author: message.author
       }
-    }, {})
+    }, {}, message.channel.name)
   });
 
   /*
@@ -129,8 +126,10 @@ export async function startDiscordClient() {
         await handleRegisterCommand(command);
 
         break;
+
       case 'subscribe':
-        await handleSubscribeCommand(command);
+      case 'listen':
+        await handleListenCommand(command);
         break;
     }
   })
@@ -182,7 +181,7 @@ async function handleRegisterCommand(command: CommandInteraction) {
   });
 }
 
-async function refreshCommands(rest: REST) {
+async function refreshCommands(rest: REST, logger: Logger) {
   if (!DISCORD_BOT_CLIENT_ID) {
     return;
   }
@@ -209,8 +208,8 @@ async function refreshCommands(rest: REST) {
       description: 'Register your account with the bot'
     },
     {
-      name: 'subscribe',
-      description: 'Subscribes to messages',
+      name: 'listen',
+      description: 'Listen for message content',
       options: [
         {
           name: 'regex',
@@ -229,19 +228,19 @@ async function refreshCommands(rest: REST) {
   ];
 
   try {
-    console.log('Started refreshing application (/) commands.');
+    logger.info('Started refreshing application (/) commands.');
 
     await rest.put(
       Routes.applicationCommands(DISCORD_BOT_CLIENT_ID),
       { body: commands },
     );
 
-    console.log('Successfully reloaded application (/) commands.');
+    logger.info('Successfully reloaded application (/) commands.');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 }
-async function handleSubscribeCommand(command: CommandInteraction) {
+async function handleListenCommand(command: CommandInteraction) {
   const regex = command.options.get('regex')?.value as string;
   const plugin = command.options.get('plugin')?.value as string;
   const guild = command.guildId;
@@ -279,15 +278,17 @@ async function handleSubscribeCommand(command: CommandInteraction) {
     return;
   }
 
-  await registerMessageHandler({
-    plugin_name: plugin,
+  console.log(command.channel)
+  await registerMessageContentInterest({
+    pluginName: plugin,
     regex: regex,
-    user_id: dbUser.id,
-    guild: guild,
+    userId: dbUser.id,
+    guild,
+    isAdmin: false
   });
 
   await command.reply({
-    content: `Subscribed to messages matching \`${regex}\` with plugin \`${plugin}\``,
+    content: `Subscribed for messages matching \`${regex}\` with plugin \`${plugin}\``,
     ephemeral: true,
   });
 }

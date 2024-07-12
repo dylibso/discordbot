@@ -1,11 +1,10 @@
 create table if not exists "handlers" (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references "users" ("id") on delete cascade,
   guild text not null,
+  user_id uuid not null references "users" ("id") on delete cascade,
   plugin_name text not null default 'default',
   allowed_channels jsonb not null default '[]'::jsonb,
   allowed_hosts jsonb not null default '[]'::jsonb,
-  commands jsonb not null default '[]'::jsonb,
 
   ratelimiting_max_tokens int,
   ratelimiting_current_tokens int,
@@ -14,6 +13,7 @@ create table if not exists "handlers" (
   created_at timestamp(3) not null default now(),
   updated_at timestamp(3) not null default now()
 );
+create unique index "handlers_uniq" on "handlers" ("guild", "user_id", "plugin_name");
 
 create table if not exists "interest_message_content" (
   id uuid primary key default gen_random_uuid(),

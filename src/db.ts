@@ -43,18 +43,33 @@ export async function getXtp(): ReturnType<typeof createClient> {
     logger: getLogger(),
     functions: {
       'extism:host/user': {
-        react(context: CurrentPlugin, outgoingReaction: bigint) {
-          return 0n
+        async react(context: CurrentPlugin, outgoingReaction: bigint) {
+          try {
+            const arg = context.read(outgoingReaction)!.json()
+            const hostContext = context.hostContext<HostContext>();
+            const result = await hostContext.react(arg)
+
+            return context.store(JSON.stringify(result))
+          } catch (error: any) {
+            console.error(error.stack)
+            return context.store(JSON.stringify({ errorCode: -1, error }))
+          }
         },
 
         request(context: CurrentPlugin, outgoingRequest: bigint) {
           return 0n
         },
 
-        sendMessage(context: CurrentPlugin, outgoingMessage: bigint) {
-          const hostContext = context.hostContext<HostContext>();
-          console.log(hostContext.handler)
-          return context.store(JSON.stringify({}))
+        async sendMessage(context: CurrentPlugin, outgoingMessage: bigint) {
+          try {
+            const arg = context.read(outgoingMessage)!.json()
+            const hostContext = context.hostContext<HostContext>();
+            const result = await hostContext.sendMessage(arg)
+
+            return context.store(JSON.stringify(result))
+          } catch (error) {
+            return context.store(JSON.stringify({ errorCode: -1, error }))
+          }
         },
 
         watchMessage(context: CurrentPlugin, outgoingRequest: bigint) {
