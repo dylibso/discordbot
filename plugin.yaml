@@ -39,9 +39,13 @@ imports:
 schemas:
   - name: IncomingEvent
     description: An incoming event
-    required: ['channel']
+    required: ['kind', 'channel']
     contentType: application/json
     properties:
+      - name: kind
+        type: string
+        description: The reason for the event
+
       - name: message
         $ref: '#/schemas/IncomingMessage'
       - name: reaction
@@ -120,7 +124,7 @@ schemas:
 
   - name: IncomingMessage
     description: An incoming message
-    required: ['id', 'message', 'author']
+    required: ['id', 'content', 'author']
     contentType: application/json
     properties:
       - name: id
@@ -132,6 +136,9 @@ schemas:
       - name: author
         type: object
         description: The author of the message
+      - name: reference
+        type: string
+        description: The id of the message to which this message replies
 
   - name: OutgoingMessage
     description: An outgoing message
@@ -144,9 +151,12 @@ schemas:
       - name: channel
         type: string
         description: The channel the message was received in
+      - name: reply
+        type: string
+        description: A message ID to reply to
 
   - name: Result
-    description: a result
+    description: A result.
     contentType: application/json
     properties:
       - name: id
@@ -154,4 +164,5 @@ schemas:
         description: An id for the result
       - name: errorCode
         type: number
-        description: An error code.
+        description: |
+          An error code. Zero indicates success. Negative numbers indicate failure.

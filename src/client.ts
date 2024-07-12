@@ -3,7 +3,7 @@ import safe from 'safe-regex';
 
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER } from './config';
 import { findUserByUsername, getXtpData, registerUser } from './domain/users';
-import { executeHandlers, fetchByContentInterest, registerMessageContentInterest } from './domain/interests';
+import { executeHandlers, fetchByContentInterest, fetchByMessageIdInterest, registerMessageContentInterest } from './domain/interests';
 import { getLogger } from './logger';
 
 type Logger = ReturnType<typeof getLogger>
@@ -52,13 +52,120 @@ export async function startDiscordClient(logger: Logger) {
     await executeHandlers(client, handlers, {
       channel: message.channel.name,
       guild: guild.id,
+      kind: 'content',
       message: {
         id: message.id,
         content: message.content,
-        author: message.author
+        author: message.author.username,
+        reference: message.reference?.messageId
       }
     }, {}, message.channel.name)
+
+    if (message.reference === null || !message.reference.messageId) {
+      return
+    }
+
+    const id = message.reference.messageId
+    const messageIdInterests = await fetchByMessageIdInterest({ guild: guild.id, channel: message.channel.name, id })
+    await executeHandlers(client, messageIdInterests, {
+      channel: message.channel.name,
+      guild: guild.id,
+      kind: 'watch:reference',
+      message: {
+        id: message.id,
+        content: message.content,
+        author: message.author.username,
+        reference: id,
+      }
+    }, {}, message.channel.name)
+
   });
+
+  client.on('messageReactionAdd', async (reaction, user) => {
+    if (reaction.message.channel.type !== ChannelType.GuildText) {
+      console.log(`skipping message; channel type was not GuildText`)
+      return
+    }
+
+    if (user.id === client.user!.id) {
+      return;
+    }
+
+    const guild = reaction.message.guild || { name: "", id: "" };
+
+    if (reaction.message.channel.type !== ChannelType.GuildText) {
+      logger.info(`skipping message; channel type was not GuildText`)
+      return
+    }
+
+    if (DISCORD_GUILD_FILTER.size && !DISCORD_GUILD_FILTER.has(guild.name)) {
+      logger.info(`skipping message; not in guild filter (got="${guild.name}"; valid="${[...DISCORD_GUILD_FILTER].join('", "')}")`)
+      return
+    }
+
+    const handlers = await fetchByMessageIdInterest({
+      guild: guild.id,
+      channel: reaction.message.channel.name,
+      id: reaction.message.id
+    })
+    await executeHandlers(client, handlers, {
+      channel: reaction.message.channel.name,
+      guild: guild.id,
+      kind: 'watch:reaction:added',
+      reaction: {
+        message: {
+          id: reaction.message.id,
+          content: reaction.message.content,
+          author: reaction.message.author?.username,
+        },
+        from: user.username,
+        with: reaction.emoji,
+      }
+    }, {}, reaction.message.channel.name)
+  })
+
+  client.on('messageReactionRemove', async (reaction, user) => {
+    if (reaction.message.channel.type !== ChannelType.GuildText) {
+      console.log(`skipping message; channel type was not GuildText`)
+      return
+    }
+
+    if (user.id === client.user!.id) {
+      return;
+    }
+
+    const guild = reaction.message.guild || { name: "", id: "" };
+
+    if (reaction.message.channel.type !== ChannelType.GuildText) {
+      logger.info(`skipping message; channel type was not GuildText`)
+      return
+    }
+
+    if (DISCORD_GUILD_FILTER.size && !DISCORD_GUILD_FILTER.has(guild.name)) {
+      logger.info(`skipping message; not in guild filter (got="${guild.name}"; valid="${[...DISCORD_GUILD_FILTER].join('", "')}")`)
+      return
+    }
+
+    const handlers = await fetchByMessageIdInterest({
+      guild: guild.id,
+      channel: reaction.message.channel.name,
+      id: reaction.message.id
+    })
+    await executeHandlers(client, handlers, {
+      channel: reaction.message.channel.name,
+      guild: guild.id,
+      kind: 'watch:reaction:removed',
+      reaction: {
+        message: {
+          id: reaction.message.id,
+          content: reaction.message.content,
+          author: reaction.message.author?.username,
+        },
+        from: user.username,
+        with: reaction.emoji,
+      }
+    }, {}, reaction.message.channel.name)
+  })
 
   client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) {

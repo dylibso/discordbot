@@ -1,15 +1,14 @@
-import { Client, Message, TextBasedChannel } from "discord.js";
+import { Client } from "discord.js";
 
 import { getDatabaseConnection, getXtp } from "../db";
 import { getLogger } from "../logger";
+import { HostContext } from "./host-context";
 
 const logger = getLogger()
 
 // every 50ms of runtime costs 1 token
 const TOKEN_COST_PER_MILLISECOND = 1 / 50;
 const TOKEN_ERROR_COST = 100
-const TOKEN_COST_PER_SENDMESSAGE = 10
-const TOKEN_COST_PER_REACTION = 30
 
 export interface Handler {
   id: string
@@ -28,81 +27,67 @@ export interface FetchBy {
   channel: string
 }
 
-export class HostContext {
-  client: Client
-  handler: Handler
-  currentChannel: string | null
-  constructor(client: Client, handler: Handler, currentChannel: string | null) {
-    this.client = client
-    this.handler = handler
-    this.currentChannel = currentChannel
-  }
-
-  async react(reaction: any) {
-    this.handler.ratelimitingCurrentTokens = Math.max(0, this.handler.ratelimitingCurrentTokens - TOKEN_COST_PER_REACTION)
-    if (this.handler.ratelimitingCurrentTokens === 0) {
-      logger.warn(`hostFunction.react: handler ran out of tokens (handler=${this.handler.id})`)
-      return { errorCode: -999, error: new Error('not enough tokens') }
-    }
-
-    const { messageId, channel = this.currentChannel, with: emoji } = reaction || {}
-
-    const chan = this.client.channels.cache.find(xs => (
-      xs.type === 0 &&
-      xs.guildId === this.handler.guild &&
-      (xs.name === channel || String(xs.id) === String(channel))
-    )) as TextBasedChannel
-    if (!chan) {
-      return { errorCode: -3, error: new Error('no such channel') }
-    }
-
-    const msg = chan.messages.cache.find(xs => xs.id === messageId) as Message
-    if (!msg) {
-      return { errorCode: -4, error: new Error('no such message') }
-    }
-
-    const [err, result] = await msg.react(emoji).then(
-      res => [, res],
-      err => [err,]
-    )
-
-    if (err) {
-      return { errorCode: err.code, error: new Error('discord error') }
-    }
-    return { id: result.message.id }
-  }
-
-  async sendMessage(msg: any) {
-    this.handler.ratelimitingCurrentTokens = Math.max(0, this.handler.ratelimitingCurrentTokens - TOKEN_COST_PER_SENDMESSAGE)
-    if (this.handler.ratelimitingCurrentTokens === 0) {
-      logger.warn(`hostFunction.sendMessage: handler ran out of tokens (handler=${this.handler.id})`)
-      return { errorCode: -999, error: new Error('not enough tokens') }
-    }
-
-    const { message, channel = this.currentChannel } = msg || {}
-
-    if (!this.handler.allowedChannels.includes(channel)) {
-      return { errorCode: -3, error: new Error('disallowed channel') }
-    }
-
-    const chan = this.client.channels.cache.find(xs => (
-      xs.type === 0 &&
-      xs.guildId === this.handler.guild &&
-      (xs.name === channel || xs.id === channel)
-    )) as TextBasedChannel
-    if (!chan) {
-      return { errorCode: -3, error: new Error('no such channel') }
-    }
-    const result = await chan.send(message)
-
-    return { id: result.id }
-  }
-}
-
-
 export interface FetchByContentInterest extends FetchBy {
   content: string
 }
+
+export interface FetchByMessageId extends FetchBy {
+  id: string
+}
+
+export interface RegisterInterest {
+  userId: string
+  isAdmin: boolean
+  guild: string
+  pluginName: string
+}
+
+export interface RegisterMessageContentInterest extends RegisterInterest {
+  regex: string
+}
+
+export interface RegisterMessageIdInterest extends RegisterInterest {
+  id: string
+}
+
+export async function fetchByMessageIdInterest(opts: FetchByMessageId) {
+  const db = await getDatabaseConnection()
+
+  const { rows } = await db.query(`
+    SELECT
+      now() as "now",
+      "handlers"."id",
+      "guild",
+      "user_id" as "userId",
+      "plugin_name" as "pluginName",
+      "allowed_hosts" as "allowedHosts",
+      "allowed_channels" as "allowedChannels",
+      "ratelimiting_max_tokens" as "ratelimitingMaxTokens",
+      "ratelimiting_current_tokens" as "ratelimitingCurrentTokens",
+      "ratelimiting_last_reset"::timestamptz as "ratelimitingLastReset"
+    FROM
+      "handlers"
+    LEFT JOIN "interest_message_id" ON "handlers"."id" = "interest_message_id"."handler_id"
+    WHERE
+      "handlers"."guild" = $1 AND
+      "handlers"."allowed_channels" ? $2 AND
+      "interest_message_id"."message_id" = $3
+    GROUP BY "handlers"."id"
+  `, [opts.guild, opts.channel, opts.id]);
+
+  const handlers = rows.filter((row: any) => {
+    const elapsedSeconds = (row.now.getTime() - row.ratelimitingLastReset.getTime()) / 1000
+    const addedTokens = Math.floor(elapsedSeconds * (row.ratelimitingMaxTokens / 60))
+    row.ratelimitingCurrentTokens = Math.min(row.ratelimitingMaxTokens, row.ratelimitingCurrentTokens + addedTokens)
+    if (row.ratelimitingCurrentTokens === 0) {
+      logger.warn(`skipping handler due to token exhaustion; hander=${row.id}`)
+    }
+    return row.ratelimitingCurrentTokens > 0
+  }) as Handler[];
+
+  return handlers
+}
+
 export async function fetchByContentInterest(opts: FetchByContentInterest) {
   const db = await getDatabaseConnection()
 
@@ -189,22 +174,8 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
   `, [ids, tokens]);
 }
 
-export interface RegisterInterest {
-  userId: string
-  isAdmin: boolean
-  guild: string
-  pluginName: string
-}
-
-export interface RegisterMessageContentInterest extends RegisterInterest {
-  regex: string
-}
-
-export async function registerMessageContentInterest(opts: RegisterMessageContentInterest) {
-  const db = await getDatabaseConnection()
-
-  return await db.transaction(async (db: any) => {
-    const { rows: [{ id = null }] = [] } = await db.query(`
+async function registerHandler(db: any, opts: RegisterInterest) {
+  const { rows: [{ id = null }] = [] } = await db.query(`
       insert into "handlers" (
         guild,
         user_id,
@@ -226,18 +197,25 @@ export async function registerMessageContentInterest(opts: RegisterMessageConten
       ) on conflict (guild, user_id, plugin_name) do update set updated_at = now()
       returning id;
     `, [
-      opts.guild,
-      opts.userId,
-      opts.pluginName,
-      JSON.stringify(opts.isAdmin ? ['general'] : ['bots']),
-      JSON.stringify(opts.isAdmin ? ['*'] : []),
-      opts.isAdmin ? 10_000 : 500
-    ])
+    opts.guild,
+    opts.userId,
+    opts.pluginName,
+    JSON.stringify(opts.isAdmin ? ['general'] : ['bots']),
+    JSON.stringify(opts.isAdmin ? ['*'] : []),
+    opts.isAdmin ? 10_000 : 500
+  ])
 
-    if (!id) {
-      throw new Error('failed to insert')
-    }
+  if (!id) {
+    throw new Error('failed to insert')
+  }
+  return id
+}
 
+export async function registerMessageContentInterest(opts: RegisterMessageContentInterest) {
+  const db = await getDatabaseConnection()
+
+  return await db.transaction(async (db: any) => {
+    const id = await registerHandler(db, opts)
     const contentResult = await db.query(`
       insert into "interest_message_content" (
         handler_id,
@@ -249,4 +227,19 @@ export async function registerMessageContentInterest(opts: RegisterMessageConten
   })
 }
 
-export async function fetchByMessageIdInterest(guild: string, channel: string, id: string) { }
+export async function registerMessageIdInterest(opts: RegisterMessageIdInterest) {
+  const db = await getDatabaseConnection()
+
+  return await db.transaction(async (db: any) => {
+    const id = await registerHandler(db, opts)
+    const contentResult = await db.query(`
+      insert into "interest_message_id" (
+        handler_id,
+        message_id
+      ) values ($1, $2) on conflict(handler_id, message_id) do nothing returning id;
+    `, [id, opts.id])
+
+    logger.info('interest registered:', opts)
+    return contentResult.rows.length > 1
+  })
+}

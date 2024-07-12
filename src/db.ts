@@ -3,10 +3,11 @@ import createClient from '@dylibso/xtp';
 import EventEmitter from 'node:events'
 import pg from 'pg'
 
+import { HostContext } from './domain/host-context';
 import { getLogger } from './logger';
 import { PGURL } from './config';
-import { HostContext } from './domain/interests';
-console.log(process.env.XTP_ENDPOINT)
+
+const logger = getLogger()
 
 let db: any
 export async function getDatabaseConnection() {
@@ -43,15 +44,15 @@ export async function getXtp(): ReturnType<typeof createClient> {
     logger: getLogger(),
     functions: {
       'extism:host/user': {
-        async react(context: CurrentPlugin, outgoingReaction: bigint) {
+        async react(context: CurrentPlugin, outgoingReactionBuf: bigint) {
           try {
-            const arg = context.read(outgoingReaction)!.json()
+            const outgoingReaction = context.read(outgoingReactionBuf)!.json()
             const hostContext = context.hostContext<HostContext>();
-            const result = await hostContext.react(arg)
+            const result = await hostContext.react(outgoingReaction)
 
             return context.store(JSON.stringify(result))
           } catch (error: any) {
-            console.error(error.stack)
+            logger.error(error)
             return context.store(JSON.stringify({ errorCode: -1, error }))
           }
         },
@@ -60,20 +61,31 @@ export async function getXtp(): ReturnType<typeof createClient> {
           return 0n
         },
 
-        async sendMessage(context: CurrentPlugin, outgoingMessage: bigint) {
+        async sendMessage(context: CurrentPlugin, outgoingMessageBuf: bigint) {
           try {
-            const arg = context.read(outgoingMessage)!.json()
+            const outgoingMessage = context.read(outgoingMessageBuf)!.json()
             const hostContext = context.hostContext<HostContext>();
-            const result = await hostContext.sendMessage(arg)
+            const result = await hostContext.sendMessage(outgoingMessage)
 
             return context.store(JSON.stringify(result))
-          } catch (error) {
+          } catch (error: any) {
+            logger.error(error)
             return context.store(JSON.stringify({ errorCode: -1, error }))
           }
         },
 
-        watchMessage(context: CurrentPlugin, outgoingRequest: bigint) {
-          return 0n
+        async watchMessage(context: CurrentPlugin, messageIdBuf: bigint) {
+          try {
+            const messageId = context.read(messageIdBuf)!.text()
+
+            const hostContext = context.hostContext<HostContext>();
+            const result = await hostContext.watchMessage(messageId)
+
+            return context.store(JSON.stringify(result))
+          } catch (error: any) {
+            logger.error(error)
+            return context.store(JSON.stringify({ errorCode: -1, error }))
+          }
         }
       }
     }
