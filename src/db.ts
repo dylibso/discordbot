@@ -43,10 +43,37 @@ export async function getXtp(): ReturnType<typeof createClient> {
     runInWorker: true,
     logger: getLogger(),
     functions: {
-      'extism:host/user': {
-        async react(context: CurrentPlugin, outgoingReactionBuf: bigint) {
+      'extism:host/env': {
+        var_get(context: CurrentPlugin, keyPtr: bigint) {
           try {
-            const outgoingReaction = context.read(outgoingReactionBuf)!.json()
+            const key = context.read(keyPtr)!.text()
+            const hostContext = context.hostContext<HostContext>();
+            const result = hostContext.getVariable(key)
+            console.log({ result })
+
+            return context.store(result || new Uint8Array())
+          } catch (error: any) {
+            logger.error(error)
+            return context.store(JSON.stringify({ errorCode: -1, error }))
+          }
+        },
+
+        var_set(context: CurrentPlugin, keyPtr: bigint, valuePtr: bigint) {
+          try {
+            const key = context.read(keyPtr)!.text()
+            const value = context.read(valuePtr)!.text()
+
+            const hostContext = context.hostContext<HostContext>();
+            hostContext.setVariable(key, value)
+          } catch (error: any) {
+            logger.error(error)
+          }
+        },
+      },
+      'extism:host/user': {
+        async react(context: CurrentPlugin, outgoingReactionPtr: bigint) {
+          try {
+            const outgoingReaction = context.read(outgoingReactionPtr)!.json()
             const hostContext = context.hostContext<HostContext>();
             const result = await hostContext.react(outgoingReaction)
 
@@ -61,9 +88,9 @@ export async function getXtp(): ReturnType<typeof createClient> {
           return 0n
         },
 
-        async sendMessage(context: CurrentPlugin, outgoingMessageBuf: bigint) {
+        async sendMessage(context: CurrentPlugin, outgoingMessagePtr: bigint) {
           try {
-            const outgoingMessage = context.read(outgoingMessageBuf)!.json()
+            const outgoingMessage = context.read(outgoingMessagePtr)!.json()
             const hostContext = context.hostContext<HostContext>();
             const result = await hostContext.sendMessage(outgoingMessage)
 
@@ -74,9 +101,9 @@ export async function getXtp(): ReturnType<typeof createClient> {
           }
         },
 
-        async watchMessage(context: CurrentPlugin, messageIdBuf: bigint) {
+        async watchMessage(context: CurrentPlugin, messageIdPtr: bigint) {
           try {
-            const messageId = context.read(messageIdBuf)!.text()
+            const messageId = context.read(messageIdPtr)!.text()
 
             const hostContext = context.hostContext<HostContext>();
             const result = await hostContext.watchMessage(messageId)

@@ -12,11 +12,14 @@ import { sendMessage, react, request } from "./pdk";
  * @param input An incoming event
  */
 export function handleImpl(input: any) {
+  const num = Number(Var.getString('invokeCount')) || 1
+  Var.set('invokeCount', String(num + 1))
+
   switch (input.kind) {
     case 'content':
       react({ messageId: input.message!.id, channel: input.channel, with: '🎤' } as any)
       const result = sendMessage({
-        message: 'WOW TURN IT DOWN OKAY',
+        message: (num & 1) === 0 ? 'WOW TURN IT DOWN OKAY' : 'I AM TRYING TO SLEEP HERE',
         reply: input.message!.id
       } as any)
 

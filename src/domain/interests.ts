@@ -20,6 +20,9 @@ export interface Handler {
   ratelimitingMaxTokens: number
   ratelimitingLastReset: Date
   ratelimitingCurrentTokens: number
+
+  startTokens: number
+  brain: Record<string, string>
 }
 
 export interface FetchBy {
@@ -96,6 +99,7 @@ export async function fetchByContentInterest(opts: FetchByContentInterest) {
       now() as "now",
       "handlers"."id",
       "guild",
+      "brain",
       "user_id" as "userId",
       "plugin_name" as "pluginName",
       "allowed_hosts" as "allowedHosts",
@@ -120,6 +124,7 @@ export async function fetchByContentInterest(opts: FetchByContentInterest) {
     if (row.ratelimitingCurrentTokens === 0) {
       logger.warn(`skipping handler due to token exhaustion; hander=${row.id}`)
     }
+    row.startTokens = row.ratelimitingCurrentTokens
     return row.ratelimitingCurrentTokens > 0
   }) as Handler[];
 
@@ -136,6 +141,8 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
   const promises = [];
   const ids = [];
   const tokens = [];
+  const costs = [];
+  const brains = [];
   for (const handler of handlers) {
     promises.push(xtp.extensionPoints.events.handle(handler.userId, arg, {
       bindingName: handler.pluginName,
@@ -159,6 +166,8 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
     handlers[idx].ratelimitingCurrentTokens = Math.max(0, handlers[idx].ratelimitingCurrentTokens - cost)
     ids.push(handlers[idx].id)
     tokens.push(handlers[idx].ratelimitingCurrentTokens)
+    costs.push(handlers[idx].startTokens - handlers[idx].ratelimitingCurrentTokens)
+    brains.push(handlers[idx].brain)
 
     ++idx;
   }
@@ -167,11 +176,13 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
     UPDATE "handlers"
     SET
       "ratelimiting_last_reset" = now(),
-      "ratelimiting_current_tokens" = updater."ct"
+      "ratelimiting_current_tokens" = updater."ct",
+      "brain" = "b",
+      "lifetime_cost" = "lifetime_cost" + "c"
     FROM (
-      SELECT id, ct FROM UNNEST($1::uuid[], $2::int[]) as x("id", "ct")
+      SELECT id, ct, c, b FROM UNNEST($1::uuid[], $2::int[], $3::int[], $4::jsonb[]) as x("id", "ct", "c", "b")
     ) updater where updater.id = handlers.id
-  `, [ids, tokens]);
+  `, [ids, tokens, costs, brains]);
 }
 
 async function registerHandler(db: any, opts: RegisterInterest) {

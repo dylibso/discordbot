@@ -19,6 +19,19 @@ export class HostContext {
     this.currentChannel = currentChannel
   }
 
+  getVariable(key: string) {
+    if (key === '__proto__') {
+      return ''
+    }
+    return String(this.handler.brain[key] || '')
+  }
+
+  setVariable(key: string, value: string) {
+    if (key !== '__proto__') {
+      this.handler.brain[key] = value
+    }
+  }
+
   async watchMessage(id: string) {
     this.handler.ratelimitingCurrentTokens = Math.max(0, this.handler.ratelimitingCurrentTokens - TOKEN_COST_PER_WATCH)
     if (this.handler.ratelimitingCurrentTokens === 0) {
