@@ -1,10 +1,10 @@
 import { ChannelType, Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
 import safe from 'safe-regex';
 
-import { findMatchingMessageHandlers, registerMessageHandler } from './domain/message-handlers';
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER, DISCORD_CHANNEL_FILTER } from './config';
 import { findUserByUsername, getXtpData, registerUser } from './domain/users';
-import { getXtp } from './db';
+import { executeHandlers, fetchByContentInterest } from './domain/interests';
+import { registerMessageHandler } from './domain/message-handlers';
 
 export async function startDiscordClient() {
   if (!DISCORD_BOT_TOKEN) {
@@ -18,6 +18,8 @@ export async function startDiscordClient() {
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMessageReactions,
+      GatewayIntentBits.GuildMembers,
       GatewayIntentBits.MessageContent,
     ],
   });
@@ -49,28 +51,63 @@ export async function startDiscordClient() {
     }
 
     console.log(`Incoming message in "${guild.name}" "#${message.channel.name}" (${guild.id}): `, message.content);
-    const xtp = await getXtp();
-    const handlers = await findMatchingMessageHandlers(guild.id, message.content);
-
-    for (let i = 0; i < handlers.length; i++) {
-      const handler = handlers[i];
-      console.log("Found matching handler: ", handler.id, "regex=" + handler.regex);
-      try {
-        // TODO: provide more data (message user, channel name, ...) via plugin input
-        // TODO: make sure we use handler.user_id for the xtp guest key (or change this if we use something else)
-        const result = await xtp.extensionPoints['message_handlers'].handle_message(handler.user_id, message.content, {
-          bindingName: handler.plugin_name,
-          default: ""
-        });
-
-        if (result !== null && result!.length > 0) {
-          await message.reply(result!);
-        }
-      } catch (err) {
-        console.error("Error running XTP extension", err);
+    const handlers = await fetchByContentInterest({ guild: guild.id, channel: message.channel.name, content: message.content });
+    await executeHandlers(client, handlers, {
+      channel: message.channel.name,
+      guild: guild.name,
+      message: {
+        id: message.id,
+        content: message.content,
+        author: message.author
       }
-    }
+    }, {})
   });
+
+  /*
+  client.on('messageReactionAdd', async (reaction, user) => {
+    if (reaction.message.channel.type !== ChannelType.GuildText) {
+      console.log(`skipping message; channel type was not GuildText`)
+      return
+    }
+
+    if (!reaction.message.guild) {
+      return
+    }
+    const xtp = await getXtp();
+    const handlers = await findMatchingReactionHandlers(reaction.message.guild!.name, reaction.message.channel!.name, reaction.message.id);
+
+    const hrtime = process.hrtime();
+    const promises = [];
+    for (const handler of handlers) {
+      promises.push(xtp.extensionPoints.events.handle(handler.user_id, {
+        channel: reaction.message.channel.name,
+        guild: reaction.message.guild.name,
+        reaction: {
+          from: user.username,
+          with: reaction.emoji.name || reaction.emoji.id,
+        },
+      }, {
+        bindingName: handler.plugin_name,
+        default: {}
+      }).then(
+        _ => [, process.hrtime(hrtime)],
+        err => [err,]
+      ));
+    }
+
+    let idx = 0;
+    for (const result of await Promise.allSettled(promises)) {
+      if (result.status === 'rejected') {
+        console.error(handlers[idx].user_id, handlers[idx].plugin_name, result.reason)
+      } else {
+        console.log(handlers[idx].user_id, handlers[idx].plugin_name, result.value)
+      }
+
+      ++idx;
+    }
+
+    console.log(user)
+  })*/
 
   client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) {
@@ -209,6 +246,8 @@ async function handleSubscribeCommand(command: CommandInteraction) {
   const plugin = command.options.get('plugin')?.value as string;
   const guild = command.guildId;
 
+  console.log(command.guild)
+  console.log(command.channel)
   if (!guild) {
     // how is this possible?
     await command.reply({

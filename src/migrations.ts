@@ -25,9 +25,8 @@ export default async function migrations() {
   for (const file of files) {
     console.log(`running ${file.name}`)
     const contents = await fs.readFile(path.join(__dirname, '..', 'migrations', file.name), 'utf8')
-    await db.query(contents)
+    console.log(await db.query(contents))
     await db.query(`UPDATE "_migrations" SET "last_migration" = $1;`, [++idx])
-    ++idx
   }
 
   {

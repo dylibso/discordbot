@@ -3,14 +3,161 @@
 #
 # We should keep the XTP app that the deployed service uses in sync with this
 # schema.
+version: v1-draft
 exports:
-  - name: handle_message
+  - name: handle
+    input:
+      $ref: "#/schemas/IncomingEvent"
+
+imports:
+  - name: react
+    input:
+      $ref: "#/schemas/OutgoingReaction"
+    output:
+      $ref: "#/schemas/Result"
+
+  - name: request
+    input:
+      $ref: "#/schemas/OutgoingRequest"
+    output:
+      $ref: "#/schemas/Result"
+
+  - name: sendMessage
+    input:
+      $ref: "#/schemas/OutgoingMessage"
+    output:
+      $ref: "#/schemas/Result"
+
+  - name: watchMessage
     input:
       type: string
-      contentType: text/plain; charset=UTF-8
-      description: The message sent to Discord
+      description: the id of a message to watch
+      contentType: text/plain
     output:
-      type: string
-      contentType: text/plain; charset=UTF-8
-      description: The Bot's reply
-version: v1-draft
+      $ref: "#/schemas/Result"
+
+schemas:
+  - name: IncomingEvent
+    description: An incoming event
+    required: ['channel', 'guild']
+    contentType: application/json
+    properties:
+      - name: message
+        $ref: '#/schemas/IncomingMessage'
+      - name: reaction
+        $ref: '#/schemas/IncomingReaction'
+
+      - name: channel
+        type: string
+        description: The channel the message was received in
+      - name: guild
+        type: string
+        description: The server the message was received in
+
+  - name: OutgoingRequest
+    description: An HTTP request
+    required: ['method', 'url', 'headers', 'body']
+    contentType: application/json
+    properties:
+      - name: method
+        description: the http method
+        type: string
+      - name: url
+        description: the url
+        type: string
+      - name: headers
+        description: the http headers
+        type: object
+        contentType: application/json
+      - name: body
+        description: the http body
+        type: string
+        contentType: application/json
+
+  - name: OutgoingReaction
+    description: send a reaction
+    required: ['messageId', 'emoji']
+    contentType: application/json
+    properties:
+      - name: messageId
+        type: string
+        description: the message id
+      - name: with
+        type: string
+        description: The emoji reaction
+
+  - name: IncomingResponse
+    description: We received a response
+    required: ['id', 'status', 'headers', 'body']
+    contentType: application/json
+    properties:
+      - name: id
+        type: string
+        description: the identifier the plugin sent
+      - name: status
+        description: the http status code
+        type: number
+        contentType: application/json
+      - name: headers
+        description: the http headers
+        type: object
+        contentType: application/json
+      - name: body
+        description: the http body
+        type: string
+        contentType: application/json
+
+  - name: IncomingReaction
+    description: A reaction happened
+    required: ['message', 'from', 'with']
+    contentType: application/json
+    properties:
+      - name: message
+        $ref: '#/schemas/IncomingMessage'
+      - name: from
+        type: string
+        description: The username that reacted
+      - name: with
+        type: string
+        description: The emoji reaction
+
+  - name: IncomingMessage
+    description: An incoming message
+    required: ['id', 'message', 'author']
+    contentType: application/json
+    properties:
+      - name: id
+        type: string
+        description: An id identifying the message.
+      - name: content
+        type: string
+        description: The message text
+      - name: author
+        type: object
+        description: The author of the message
+
+  - name: OutgoingMessage
+    description: An outgoing message
+    required: ['message', 'channel', 'guild']
+    contentType: application/json
+    properties:
+      - name: message
+        type: string
+        description: The message text
+      - name: channel
+        type: string
+        description: The channel the message was received in
+      - name: guild
+        type: string
+        description: The server the message was received in
+
+  - name: Result
+    description: a result
+    contentType: application/json
+    properties:
+      - name: id
+        type: string
+        description: An id for the result
+      - name: errorCode
+        type: number
+        description: An error code.

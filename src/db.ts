@@ -3,9 +3,10 @@ import createClient from '@dylibso/xtp';
 import EventEmitter from 'node:events'
 import pg from 'pg'
 
-import { SendMessageRequest, forwardMessage } from './domain/messages';
 import { getLogger } from './logger';
 import { PGURL } from './config';
+import { HostContext } from './domain/interests';
+console.log(process.env.XTP_ENDPOINT)
 
 let db: any
 export async function getDatabaseConnection() {
@@ -38,23 +39,26 @@ export async function getXtp(): ReturnType<typeof createClient> {
     token: String(process.env.XTP_TOKEN),
     appId: String(process.env.XTP_APP_ID),
     baseUrl: String(process.env.XTP_ENDPOINT || 'http://localhost:8080'),
+    runInWorker: true,
     logger: getLogger(),
     functions: {
       'extism:host/user': {
-        forwardMessage(context: CurrentPlugin, reqPtr: bigint) {
-          try {
-            const arg = context.read(reqPtr)
-            if (!arg) return
+        react(context: CurrentPlugin, outgoingReaction: bigint) {
+          return 0n
+        },
 
-            // TODO: ideally the sdk is doing validation here
-            forwardMessage(arg.json() as SendMessageRequest).catch(err => {
-              // TODO: log error
-            })
+        request(context: CurrentPlugin, outgoingRequest: bigint) {
+          return 0n
+        },
 
-            return context.store("true")
-          } catch (err) {
-            console.log('err', err)
-          }
+        sendMessage(context: CurrentPlugin, outgoingMessage: bigint) {
+          const hostContext = context.hostContext<HostContext>();
+          console.log(hostContext.handler)
+          return context.store(JSON.stringify({}))
+        },
+
+        watchMessage(context: CurrentPlugin, outgoingRequest: bigint) {
+          return 0n
         }
       }
     }

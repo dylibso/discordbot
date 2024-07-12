@@ -33,8 +33,8 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@dylibso/xtp": "^0.0.0-rc5",
-    "@extism/extism": "^1.0.3",
+    "@dylibso/xtp": "file:../xtp/sdks/js-sdk/dist/dylibso-xtp-0.0.0-replaced-by-ci.tgz",
+    "@extism/extism": "file:../../extism/js-sdk/dist/extism-extism-0.0.0-replaced-by-ci.tgz",
     "@fastify/cookie": "^9.3.1",
     "@fastify/oauth2": "^7.8.0",
     "@fastify/session": "^10.7.0",
