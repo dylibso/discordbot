@@ -46,6 +46,8 @@
     "fastify-sse-v2": "^4.0.0",
     "nunjucks": "^3.2.4",
     "pg": "^8.11.4",
-    "safe-regex": "^2.1.1"
+    "pokemon": "^3.2.0",
+    "safe-regex": "^2.1.1",
+    "table": "^6.8.2"
   }
 }

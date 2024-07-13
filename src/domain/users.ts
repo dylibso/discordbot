@@ -1,4 +1,7 @@
 import { getDatabaseConnection, getXtp } from "../db";
+import { getLogger } from "../logger";
+
+const logger = getLogger()
 
 export interface User {
   id: string,
@@ -90,13 +93,12 @@ export async function updateUser(db: any, user: User) {
   return updatedUser
 }
 
-export async function registerUser(registration: RegisterUser): Promise<User> {
+export async function registerUser(registration: RegisterUser) {
   const db = await getDatabaseConnection()
   const xtp = await getXtp()
 
   try {
     return await db.transaction(async (db: any) => {
-      console.log('running create user row', registration)
       const result = await db.query(`
         INSERT INTO "users" (
           username
@@ -108,7 +110,6 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
       const { rows: [user] } = result
 
       if (registration.github) {
-        console.log('running create credential row')
         await db.query(`
           INSERT INTO "credentials" (
             user_id,
@@ -121,17 +122,16 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
           );
         `, [user.id, JSON.stringify(registration.github.user)])
 
-        console.log('sending guest invite')
         await xtp.inviteGuest({
           name: registration.github.user.name,
           email: registration.github.user.email,
           guestKey: user.id,
           deliveryMethod: 'email'
         }).catch(err => {
-          console.error(err)
+          logger.error(err)
         })
       } else if (registration.discord) {
-        console.log('running create credential row')
+        logger.info(`user signup via discord; username="${registration.username}"`)
         await db.query(`
           INSERT INTO "credentials" (
             user_id,
@@ -155,13 +155,13 @@ export async function registerUser(registration: RegisterUser): Promise<User> {
       }
 
 
-      return user
+      return [true, user]
     })
   } catch (e: any) {
     if (e.code === '23505' && e.constraint === 'users_username_idx') {
       const user = await findUserByUsername(registration.username)
       if (user) {
-        return user
+        return [false, user]
       }
     }
 

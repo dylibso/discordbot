@@ -53,49 +53,20 @@ export interface RegisterMessageIdInterest extends RegisterInterest {
   id: string
 }
 
-export async function fetchByMessageIdInterest(opts: FetchByMessageId) {
-  const db = await getDatabaseConnection()
-
-  const { rows } = await db.query(`
-    SELECT
-      now() as "now",
-      "handlers"."id",
-      "guild",
-      "user_id" as "userId",
-      "plugin_name" as "pluginName",
-      "allowed_hosts" as "allowedHosts",
-      "allowed_channels" as "allowedChannels",
-      "ratelimiting_max_tokens" as "ratelimitingMaxTokens",
-      "ratelimiting_current_tokens" as "ratelimitingCurrentTokens",
-      "ratelimiting_last_reset"::timestamptz as "ratelimitingLastReset"
-    FROM
-      "handlers"
-    LEFT JOIN "interest_message_id" ON "handlers"."id" = "interest_message_id"."handler_id"
-    WHERE
-      "handlers"."guild" = $1 AND
-      "handlers"."allowed_channels" ? $2 AND
-      "interest_message_id"."message_id" = $3
-    GROUP BY "handlers"."id"
-  `, [opts.guild, opts.channel, opts.id]);
-
-  const handlers = rows.filter((row: any) => {
+function initializeHandlersFromRows(rows: any[]) {
+  return rows.filter((row: any) => {
     const elapsedSeconds = (row.now.getTime() - row.ratelimitingLastReset.getTime()) / 1000
     const addedTokens = Math.floor(elapsedSeconds * (row.ratelimitingMaxTokens / 60))
     row.ratelimitingCurrentTokens = Math.min(row.ratelimitingMaxTokens, row.ratelimitingCurrentTokens + addedTokens)
     if (row.ratelimitingCurrentTokens === 0) {
       logger.warn(`skipping handler due to token exhaustion; hander=${row.id}`)
     }
+    row.startTokens = row.ratelimitingCurrentTokens
     return row.ratelimitingCurrentTokens > 0
   }) as Handler[];
-
-  return handlers
 }
 
-export async function fetchByContentInterest(opts: FetchByContentInterest) {
-  const db = await getDatabaseConnection()
-
-  const { rows } = await db.query(`
-    SELECT
+const ROW_COLUMNS = `
       now() as "now",
       "handlers"."id",
       "guild",
@@ -107,6 +78,35 @@ export async function fetchByContentInterest(opts: FetchByContentInterest) {
       "ratelimiting_max_tokens" as "ratelimitingMaxTokens",
       "ratelimiting_current_tokens" as "ratelimitingCurrentTokens",
       "ratelimiting_last_reset"::timestamptz as "ratelimitingLastReset"
+`
+
+export async function fetchByMessageIdInterest(opts: FetchByMessageId) {
+  const db = await getDatabaseConnection()
+
+  const { rows } = await db.query(`
+    SELECT
+      ${ROW_COLUMNS}
+    FROM
+      "handlers"
+    LEFT JOIN "interest_message_id" ON "handlers"."id" = "interest_message_id"."handler_id"
+    WHERE
+      "handlers"."guild" = $1 AND
+      "handlers"."allowed_channels" ? $2 AND
+      "interest_message_id"."message_id" = $3
+    GROUP BY "handlers"."id"
+  `, [opts.guild, opts.channel, opts.id]);
+
+  const handlers = initializeHandlersFromRows(rows);
+
+  return handlers
+}
+
+export async function fetchByContentInterest(opts: FetchByContentInterest) {
+  const db = await getDatabaseConnection()
+
+  const { rows } = await db.query(`
+    SELECT
+      ${ROW_COLUMNS}
     FROM
       "handlers"
     LEFT JOIN "interest_message_content" ON "handlers"."id" = "interest_message_content"."handler_id"
@@ -117,16 +117,7 @@ export async function fetchByContentInterest(opts: FetchByContentInterest) {
     GROUP BY "handlers"."id"
   `, [opts.guild, opts.channel, opts.content]);
 
-  const handlers = rows.filter((row: any) => {
-    const elapsedSeconds = (row.now.getTime() - row.ratelimitingLastReset.getTime()) / 1000
-    const addedTokens = Math.floor(elapsedSeconds * (row.ratelimitingMaxTokens / 60))
-    row.ratelimitingCurrentTokens = Math.min(row.ratelimitingMaxTokens, row.ratelimitingCurrentTokens + addedTokens)
-    if (row.ratelimitingCurrentTokens === 0) {
-      logger.warn(`skipping handler due to token exhaustion; hander=${row.id}`)
-    }
-    row.startTokens = row.ratelimitingCurrentTokens
-    return row.ratelimitingCurrentTokens > 0
-  }) as Handler[];
+  const handlers = initializeHandlersFromRows(rows);
 
   return handlers
 }
@@ -253,4 +244,84 @@ export async function registerMessageIdInterest(opts: RegisterMessageIdInterest)
     logger.info('interest registered:', opts)
     return contentResult.rows.length > 1
   })
+}
+
+export interface HandlerListItem {
+  username: string
+  pluginName: string
+  lifetimeCost: number
+  ratelimitingMaxTokens: number
+  allowedChannels: string[]
+  allowedHosts: string[]
+  createdAt: Date
+}
+
+export async function listHandlers(guild: string) {
+  const db = await getDatabaseConnection()
+  const { rows } = await db.query(`
+      select
+        "users"."username",
+        "handlers".plugin_name as "pluginName",
+        "handlers".lifetime_cost as "lifetimeCost",
+        "handlers".ratelimiting_max_tokens as "ratelimitingMaxTokens",
+        "handlers".allowed_channels as "allowedChannels",
+        "handlers".allowed_hosts as "allowedHosts",
+        "handlers".created_at::timestamptz as "createdAt"
+      from "handlers"
+      left join "users" on handlers.user_id = users.id
+      where
+        handlers.guild = $1
+  `, [guild])
+  return rows as HandlerListItem[]
+}
+
+export async function addHandlerToChannel(username: string, pluginName: string, guild: string, channel: string) {
+  const db = await getDatabaseConnection()
+  const { rows } = await db.query(`
+    update "handlers" set
+      "allowed_channels" = "allowed_channels" || $1::jsonb
+    from (
+      select "handlers".id from "handlers" left join "users" on handlers.user_id = users.id
+      where
+        users.username = $2 AND
+        handlers.plugin_name = $3 AND
+        handlers.guild = $4
+    ) updater where updater.id = handlers.id
+    returning allowed_channels
+  `, [JSON.stringify([channel]), username, pluginName, guild])
+  return rows.pop()?.allowed_channels
+}
+
+export async function removeHandlerFromChannel(username: string, pluginName: string, guild: string, channel: string) {
+  const db = await getDatabaseConnection()
+  const { rows } = await db.query(`
+    update "handlers" set
+      "allowed_channels" = "allowed_channels" - $1::text
+    from (
+      select "handlers".id from "handlers" left join "users" on handlers.user_id = users.id
+      where
+        users.username = $2 AND
+        handlers.plugin_name = $3 AND
+        handlers.guild = $4
+    ) updater where updater.id = handlers.id
+    returning allowed_channels
+  `, [channel, username, pluginName, guild])
+  return rows.pop()?.allowed_channels
+}
+
+export async function setHandlerAllowedHosts(username: string, pluginName: string, guild: string, hosts: string[]) {
+  const db = await getDatabaseConnection()
+  const { rows } = await db.query(`
+    update "handlers" set
+      "allowed_hosts" = $1::jsonb
+    from (
+      select "handlers".id from "handlers" left join "users" on handlers.user_id = users.id
+      where
+        users.username = $2 AND
+        handlers.plugin_name = $3 AND
+        handlers.guild = $4
+    ) updater where updater.id = handlers.id
+    returning allowed_hosts
+  `, [JSON.stringify(hosts), username, pluginName, guild])
+  return rows.pop()?.allowed_hosts
 }

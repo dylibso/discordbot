@@ -49,7 +49,6 @@ export async function getXtp(): ReturnType<typeof createClient> {
             const key = context.read(keyPtr)!.text()
             const hostContext = context.hostContext<HostContext>();
             const result = hostContext.getVariable(key)
-            console.log({ result })
 
             return context.store(result || new Uint8Array())
           } catch (error: any) {

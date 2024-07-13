@@ -1,10 +1,12 @@
-import { ChannelType, Client, CommandInteraction, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { ChannelType, Client, CommandInteraction, GatewayIntentBits, GuildTextBasedChannel, PermissionFlagsBits, PermissionsBitField, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import safe from 'safe-regex';
 
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER } from './config';
 import { findUserByUsername, getXtpData, registerUser } from './domain/users';
-import { executeHandlers, fetchByContentInterest, fetchByMessageIdInterest, registerMessageContentInterest } from './domain/interests';
+import { addHandlerToChannel, executeHandlers, fetchByContentInterest, fetchByMessageIdInterest, listHandlers, registerMessageContentInterest, removeHandlerFromChannel, setHandlerAllowedHosts } from './domain/interests';
 import { getLogger } from './logger';
+import { getBorderCharacters, table } from 'table';
+import pokemon from 'pokemon';
 
 type Logger = ReturnType<typeof getLogger>
 
@@ -83,7 +85,7 @@ export async function startDiscordClient(logger: Logger) {
 
   client.on('messageReactionAdd', async (reaction, user) => {
     if (reaction.message.channel.type !== ChannelType.GuildText) {
-      console.log(`skipping message; channel type was not GuildText`)
+      logger.info(`skipping message; channel type was not GuildText`)
       return
     }
 
@@ -126,7 +128,7 @@ export async function startDiscordClient(logger: Logger) {
 
   client.on('messageReactionRemove', async (reaction, user) => {
     if (reaction.message.channel.type !== ChannelType.GuildText) {
-      console.log(`skipping message; channel type was not GuildText`)
+      logger.info(`skipping message; channel type was not GuildText`)
       return
     }
 
@@ -172,27 +174,135 @@ export async function startDiscordClient(logger: Logger) {
       return;
     }
 
-    const command = interaction as CommandInteraction;
-
-    switch (command.commandName) {
-      case 'ping':
-        await command.reply('Pong!');
-        break;
-      case 'echo':
-        const message = command.options.get('message')?.value as string;
-        await command.reply(message);
-        break;
-
-      case 'register':
-        await handleRegisterCommand(command);
-
-        break;
-
-      case 'subscribe':
-      case 'listen':
-        await handleListenCommand(command);
-        break;
+    if (!interaction.isChatInputCommand()) {
+      return;
     }
+
+    if (!interaction.inGuild) {
+      return;
+    }
+    const command = interaction;
+
+    if (command.commandName === 'manage-plugins') {
+      switch (command.options.getSubcommand()) {
+        default: break;
+
+        case 'invite': {
+          const plugin = command.options.getString('plugin')
+          const channel = command.options.getChannel('channel') || command.channel
+
+          if (!plugin) {
+            await command.reply({ content: "Plugin name is required", ephemeral: true })
+          }
+
+          if (!channel || channel.type !== ChannelType.GuildText) {
+            await command.reply({ content: "Could not infer channel name", ephemeral: true })
+          }
+
+          const [username, pluginName] = plugin!.split(':')
+          if (!pluginName) {
+            await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+          }
+
+          const channels = await addHandlerToChannel(username, pluginName, command.guild!.id, (channel as GuildTextBasedChannel).name)
+
+          if (!channels) {
+            return await command.reply({ content: `Couldn't find a plugin by that name, sorry!`, ephemeral: true })
+          }
+
+          return await command.reply({ content: `\`${plugin}\` is now a member of \`${channels.join(", ")}\``, ephemeral: true })
+        }
+
+        case 'kick': {
+          const plugin = command.options.getString('plugin')
+          const channel = command.options.getChannel('channel') || command.channel
+
+          if (!plugin) {
+            await command.reply({ content: "Plugin name is required", ephemeral: true })
+          }
+
+          if (!channel || channel.type !== ChannelType.GuildText) {
+            await command.reply({ content: "Could not infer channel name", ephemeral: true })
+          }
+
+          const [username, pluginName] = plugin!.split(':')
+          if (!pluginName) {
+            await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+          }
+
+          const channelName = (channel as GuildTextBasedChannel).name
+          const channels = await removeHandlerFromChannel(username, pluginName, command.guild!.id, channelName)
+
+          if (!channels) {
+            return await command.reply({ content: `Couldn't find a plugin by that name, sorry!`, ephemeral: true })
+          }
+
+          return await command.reply({ content: `\`${plugin}\` is no longer a member of \`${channelName}\``, ephemeral: true })
+        }
+
+        case 'list': {
+          const plugins = await listHandlers(command.guild!.id)
+          const output = table([
+            ['name', 'tokens per min', 'allowed channels', 'allowed hosts'],
+            ...plugins.map(xs => {
+              return [`${xs.username}:${xs.pluginName}`, `${xs.ratelimitingMaxTokens} (${xs.lifetimeCost} all-time)`, xs.allowedChannels.join(','), xs.allowedHosts.join(', ')]
+            })], {
+            border: getBorderCharacters('void'),
+            columnDefault: {
+              paddingLeft: 0,
+              paddingRight: 1
+            },
+            drawHorizontalLine: () => false
+          })
+
+          return command.reply({
+            ephemeral: true,
+            content: `${'```'}${output}${'```'}`
+          })
+
+        }
+
+        case 'set-allowed-hosts': {
+          const plugin = command.options.getString('plugin')
+          const hosts = command.options.getString('hosts')
+
+          if (!plugin) {
+            await command.reply({ content: "Plugin name is required", ephemeral: true })
+          }
+
+          const [username, pluginName] = plugin!.split(':')
+          if (!pluginName) {
+            await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+          }
+
+          const hostList = (hosts || '').split(',')
+
+          const allowedHosts = await setHandlerAllowedHosts(username, pluginName, command.guild!.id, hostList)
+
+          if (!allowedHosts) {
+            return await command.reply({ content: `Couldn't find a plugin by that name, sorry!`, ephemeral: true })
+          }
+          return await command.reply({
+            content: (
+              allowedHosts.length
+                ? `\`${plugin}\` can make requests to \`${allowedHosts.join(", ")}\``
+                : `\`${plugin}\` has no network access`
+            ),
+            ephemeral: true
+          })
+        }
+      }
+    } else if (command.commandName === 'xtp') {
+      switch (command.options.getSubcommand()) {
+        default: break;
+
+        case 'signup': return await handleSignupCommand(command)
+
+        case 'listen-for': return await handleListenCommand(client, command);
+      }
+    }
+
+    return await command.reply({ content: `I'm sorry, HAL. I don't know what you mean.`, ephemeral: true })
   })
 
   client.login(DISCORD_BOT_TOKEN);
@@ -213,10 +323,10 @@ function isValidRegex(pattern: string): boolean {
 }
 
 
-async function handleRegisterCommand(command: CommandInteraction) {
+async function handleSignupCommand(command: CommandInteraction) {
   const discordUser = command.user;
 
-  const dbUser = await registerUser({
+  const [created, dbUser] = await registerUser({
     username: discordUser.tag,
     discord: {
       id: discordUser.id,
@@ -229,6 +339,16 @@ async function handleRegisterCommand(command: CommandInteraction) {
 
   const xtp = getXtpData(dbUser);
 
+  if (!created) {
+    return await command.reply({
+      content: `It looks like you've already registered! Run \`/xtp listen-for\` to create a plugin.
+
+Visit ${xtp.inviteLink} if you haven't already; if you have any trouble ping one of the admins.
+    `,
+      ephemeral: true,
+    });
+  }
+
   await command.reply({
     content: `To get started, please activate your new XTP Host by clicking the link below.
   
@@ -237,7 +357,7 @@ async function handleRegisterCommand(command: CommandInteraction) {
   
   XTP Product docs can be found here: https://docs.xtp.dylibso.com/
   
-  TODO: Add more helpful information here.`,
+  Run \`/xtp listen-for\` to register a plugin.`,
     ephemeral: true,
   });
 }
@@ -247,53 +367,81 @@ async function refreshCommands(rest: REST, logger: Logger) {
     return;
   }
 
-  const commands = [
-    {
-      name: 'ping',
-      description: 'Replies with Pong!',
-    },
-    {
-      name: 'echo',
-      description: 'Echoes your input',
-      options: [
-        {
-          name: 'message',
-          type: 3, // STRING type
-          description: 'The message to echo',
-          required: true,
-        },
-      ],
-    },
-    {
-      name: 'register',
-      description: 'Register your account with the bot'
-    },
-    {
-      name: 'listen',
-      description: 'Listen for message content',
-      options: [
-        {
-          name: 'regex',
-          type: 3, // STRING type
-          description: 'The regex to match',
-          required: true,
-        },
-        {
-          name: 'plugin',
-          type: 3, // STRING type
-          description: 'The plugin to run',
-          required: true,
-        }
-      ]
-    }
-  ];
+  const management = new SlashCommandBuilder()
+    .setName('manage-plugins')
+    .setDescription('Control XTP plugins')
+    .addSubcommand(subcommand => subcommand
+      .setName('invite')
+      .setDescription('add plugin to channel (admin only)')
+      .addStringOption(option => option
+        .setName('plugin')
+        .setDescription('The plugin to add')
+        .setRequired(true)
+      )
+      .addChannelOption(option => option
+        .setName('channel')
+        .setDescription('The channel to add the plugin to (defaults to current channel)')
+      )
+    )
+    .addSubcommand(subcommand => subcommand
+      .setName('kick')
+      .setDescription('kick plugin from channel (admin only)')
+      .addStringOption(option => option
+        .setName('plugin')
+        .setDescription('The plugin to kick')
+        .setRequired(true)
+      )
+      .addChannelOption(option => option
+        .setName('channel')
+        .setDescription('The channel to kick the plugin from (defaults to current channel)')
+      )
+    )
+    .addSubcommand(subcommand => subcommand
+      .setName('list')
+      .setDescription('list active plugins')
+    )
+    .addSubcommand(subcommand => subcommand
+      .setName('set-allowed-hosts')
+      .setDescription('allow a plugin to access a host (admin-only)')
+      .addStringOption(option => option
+        .setName('plugin')
+        .setDescription('The name of the plugin')
+        .setRequired(true)
+      )
+      .addStringOption(option => option
+        .setName('hosts')
+        .setDescription('The host the plugin is allowed to access (wildcard, comma-separated; leave blank to block all hosts)')
+      )
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+
+  const plugins = new SlashCommandBuilder()
+    .setName('xtp')
+    .setDescription('make discord squishy: write bots')
+    .addSubcommand(subcommand => subcommand
+      .setName('signup')
+      .setDescription('sign up to write plugins')
+    )
+    .addSubcommand(subcommand => subcommand
+      .setName('listen-for')
+      .setDescription('Tell a plugin to listen for certain message content')
+      .addStringOption(option => option
+        .setName('regex')
+        .setDescription('the regex to match')
+        .setRequired(true)
+      )
+      .addStringOption(option => option
+        .setName('plugin')
+        .setDescription('the name of the plugin to run')
+      )
+    )
 
   try {
     logger.info('Started refreshing application (/) commands.');
 
     await rest.put(
       Routes.applicationCommands(DISCORD_BOT_CLIENT_ID),
-      { body: commands },
+      { body: [management, plugins] },
     );
 
     logger.info('Successfully reloaded application (/) commands.');
@@ -301,54 +449,69 @@ async function refreshCommands(rest: REST, logger: Logger) {
     logger.error(error);
   }
 }
-async function handleListenCommand(command: CommandInteraction) {
+async function handleListenCommand(client: Client, command: CommandInteraction) {
   const regex = command.options.get('regex')?.value as string;
-  const plugin = command.options.get('plugin')?.value as string;
+  const plugin = command.options.get('plugin')?.value as string || pokemon.random().toLowerCase();
   const guild = command.guildId;
 
-  console.log(command.guild)
-  console.log(command.channel)
   if (!guild) {
     // how is this possible?
-    await command.reply({
+    return await command.reply({
       content: "This command must be run in a guild",
       ephemeral: true,
     })
-    return;
   }
 
   if (!regex || !plugin) {
-    await command.reply({
+    return await command.reply({
+      ephemeral: true,
       content: "You need to provide a regex and a plugin name"
     });
   }
 
   if (!isValidRegex(regex)) {
-    await command.reply({
+    return await command.reply({
+      ephemeral: true,
       content: "Please provide a valid regex pattern. Hint: use https://regex101.com/ to test your regex."
     });
-    return;
   }
 
+  const member = await command.guild?.members.fetch(command.user.id)
+  if (!member) {
+    return await command.reply({
+      ephemeral: true,
+      content: "Could not find a member for this user"
+    });
+  }
   const dbUser = await findUserByUsername(command.user.tag);
   if (!dbUser) {
-    await command.reply({
+    return await command.reply({
       content: "You need to register your account first. Use the /register command",
       ephemeral: true,
     });
-    return;
   }
 
-  await registerMessageContentInterest({
+  const registered = await registerMessageContentInterest({
     pluginName: plugin,
     regex: regex,
     userId: dbUser.id,
     guild,
-    isAdmin: false
+    isAdmin: member.permissions.has(PermissionsBitField.Flags.ManageGuild)
   });
 
+  if (!registered) {
+    await command.reply({
+      content: `It looks like you've already registered that bot!`,
+      ephemeral: true,
+    });
+  }
+
   await command.reply({
-    content: `Subscribed for messages matching \`${regex}\` with plugin \`${plugin}\``,
+    content: `Subscribed for messages matching \`${regex}\` with plugin \`${plugin}\` in the "bots" channel.
+
+Grab the \`xtp\` CLI from the install instructions here: <https://xtp-docs.pages.dev/docs/guest-usage/getting-started>
+
+Run \`xtp plugin init --path ${plugin}\`, then \`xtp plugin build\` and \`xtp plugin push\` to install and run your bot!`,
     ephemeral: true,
   });
 }
