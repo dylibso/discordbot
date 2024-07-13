@@ -50,6 +50,8 @@ schemas:
         $ref: '#/schemas/IncomingMessage'
       - name: reaction
         $ref: '#/schemas/IncomingReaction'
+      - name: response 
+        $ref: '#/schemas/IncomingResponse'
 
       - name: channel
         type: string
@@ -57,7 +59,7 @@ schemas:
 
   - name: OutgoingRequest
     description: An HTTP request
-    required: ['method', 'url', 'headers', 'body']
+    required: ['url']
     contentType: application/json
     properties:
       - name: method

@@ -83,8 +83,17 @@ export async function getXtp(): ReturnType<typeof createClient> {
           }
         },
 
-        request(context: CurrentPlugin, outgoingRequest: bigint) {
-          return 0n
+        request(context: CurrentPlugin, outgoingRequestPtr: bigint) {
+          try {
+            const outgoingRequest = context.read(outgoingRequestPtr)!.json()
+            const hostContext = context.hostContext<HostContext>();
+            const result = hostContext.request(outgoingRequest)
+
+            return context.store(JSON.stringify(result))
+          } catch (error: any) {
+            logger.error(error)
+            return context.store(JSON.stringify({ errorCode: -1, error }))
+          }
         },
 
         async sendMessage(context: CurrentPlugin, outgoingMessagePtr: bigint) {

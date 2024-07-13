@@ -1,11 +1,15 @@
 import { Client, Message, TextBasedChannel } from "discord.js";
 
-import { Handler, registerMessageIdInterest } from "./interests";
+import { executeHandlers, fetchById, Handler, registerMessageIdInterest } from "./interests";
 import { getLogger } from "../logger";
+import { minimatch } from "minimatch";
+import { METHODS } from "http";
+import { randomUUID } from "crypto";
 
 const TOKEN_COST_PER_SENDMESSAGE = 10
 const TOKEN_COST_PER_REACTION = 30
 const TOKEN_COST_PER_WATCH = 100
+const TOKEN_COST_PER_REQUEST = 300
 
 const logger = getLogger()
 
@@ -13,10 +17,12 @@ export class HostContext {
   client: Client
   handler: Handler
   currentChannel: string | null
-  constructor(client: Client, handler: Handler, currentChannel: string | null) {
+  runComplete: Promise<void>
+  constructor(client: Client, handler: Handler, currentChannel: string | null, runComplete: Promise<void>) {
     this.client = client
     this.handler = handler
     this.currentChannel = currentChannel
+    this.runComplete = runComplete
   }
 
   getVariable(key: string) {
@@ -29,6 +35,95 @@ export class HostContext {
   setVariable(key: string, value: string) {
     if (key !== '__proto__') {
       this.handler.brain[key] = value
+    }
+  }
+
+  request(requestOpts: any) {
+    if (this.handler.allowedHosts.length === 0) {
+      return { errorCode: -5, error: new Error('no access to hosts') }
+    }
+
+    this.handler.ratelimitingCurrentTokens = Math.max(0, this.handler.ratelimitingCurrentTokens - TOKEN_COST_PER_REQUEST)
+    if (this.handler.ratelimitingCurrentTokens === 0) {
+      logger.warn(`hostFunction.request: handler ran out of tokens (handler=${this.handler.id})`)
+      return { errorCode: -999, error: new Error('not enough tokens') }
+    }
+
+    const { method = 'GET', url, headers = {}, body = null } = requestOpts || {}
+    if (!url) {
+      return { errorCode: -6, error: new Error('no url') }
+    }
+
+    let parsed
+    try {
+      parsed = new URL(url)
+    } catch {
+      return { errorCode: -6, error: new Error('bad url') }
+    }
+
+    if (!this.handler.allowedHosts.some(xs => minimatch(parsed.hostname, xs))) {
+      return { errorCode: -5, error: new Error('no access to hosts') }
+    }
+
+    if (!METHODS.includes(method.toUpperCase())) {
+      return { errorCode: -6, error: new Error('bad method') }
+    }
+
+    const headerMap = new Headers(headers)
+    const id = randomUUID()
+    fetch(url, {
+      method: method.toUpperCase(),
+      headers: headerMap,
+      ...(['GET', 'HEAD'].includes(method.toUpperCase()) ? {} : { body })
+    }).then(
+      onresponse.bind(this),
+      onerror.bind(this)
+    )
+
+    return { errorCode: 0, id }
+
+    async function onresponse(this: HostContext, response: Response) {
+      try {
+        const body = await (
+          (headerMap.get('accept') || '').includes('application/json') &&
+            (response.headers.get('content-type') || '').includes('application/json')
+            ? response.json()
+            : response.text()
+        )
+
+        const message = {
+          response: {
+            id,
+            status: response.status,
+            headers: Object.fromEntries(response.headers),
+            body,
+          },
+          kind: 'http:response'
+        }
+
+        // Wait for the last run to complete so we've saved any info we need.
+        await this.runComplete
+
+        // Refetch so we have a fresh idea of how many tokens are left.
+        const handler = await fetchById(this.handler.id)
+        if (!handler) {
+          return logger.info('handler disappeared before we could get back to em!')
+        }
+
+        await executeHandlers(
+          this.client,
+          [handler],
+          message,
+          {} as any,
+          this.currentChannel
+        )
+      } catch (err: any) {
+        onerror(err)
+      }
+    }
+
+    function onerror(err: any) {
+      logger.error('http error fetching user request', err)
     }
   }
 

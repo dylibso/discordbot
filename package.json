@@ -44,6 +44,7 @@
     "discord.js": "^14.15.3",
     "fastify": "^4.26.2",
     "fastify-sse-v2": "^4.0.0",
+    "minimatch": "^10.0.1",
     "nunjucks": "^3.2.4",
     "pg": "^8.11.4",
     "pokemon": "^3.2.0",

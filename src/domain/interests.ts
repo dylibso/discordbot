@@ -80,6 +80,23 @@ const ROW_COLUMNS = `
       "ratelimiting_last_reset"::timestamptz as "ratelimitingLastReset"
 `
 
+export async function fetchById(id: string) {
+  const db = await getDatabaseConnection()
+
+  const { rows } = await db.query(`
+    SELECT
+      ${ROW_COLUMNS}
+    FROM
+      "handlers"
+    WHERE
+      "handlers"."id" = $1
+  `, [id]);
+
+  const handlers = initializeHandlersFromRows(rows);
+
+  return handlers.pop()
+}
+
 export async function fetchByMessageIdInterest(opts: FetchByMessageId) {
   const db = await getDatabaseConnection()
 
@@ -134,11 +151,15 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
   const tokens = [];
   const costs = [];
   const brains = [];
+
+  let runCompleted: CallableFunction;
+  const resolved = new Promise(resolve => runCompleted = resolve)
+
   for (const handler of handlers) {
     promises.push(xtp.extensionPoints.events.handle(handler.userId, arg, {
       bindingName: handler.pluginName,
       default: defaultValue,
-      hostContext: new HostContext(client, handler, currentChannel)
+      hostContext: new HostContext(client, handler, currentChannel, resolved as Promise<void>)
     }).then(
       _ => [, Date.now() - start],
       err => [err, Date.now() - start]
@@ -174,6 +195,7 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
       SELECT id, ct, c, b FROM UNNEST($1::uuid[], $2::int[], $3::int[], $4::jsonb[]) as x("id", "ct", "c", "b")
     ) updater where updater.id = handlers.id
   `, [ids, tokens, costs, brains]);
+  runCompleted!()
 }
 
 async function registerHandler(db: any, opts: RegisterInterest) {
