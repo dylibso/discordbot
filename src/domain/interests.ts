@@ -225,7 +225,7 @@ export async function registerMessageContentInterest(opts: RegisterMessageConten
       ) values ($1, $2) on conflict(handler_id, regex) do nothing returning id;
     `, [id, opts.regex])
 
-    return contentResult.rows.length > 1
+    return contentResult.rows.length !== 0
   })
 }
 
@@ -242,7 +242,7 @@ export async function registerMessageIdInterest(opts: RegisterMessageIdInterest)
     `, [id, opts.id])
 
     logger.info('interest registered:', opts)
-    return contentResult.rows.length > 1
+    return contentResult.rows.length !== 0
   })
 }
 

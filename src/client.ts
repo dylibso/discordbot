@@ -500,7 +500,7 @@ async function handleListenCommand(client: Client, command: CommandInteraction) 
   });
 
   if (!registered) {
-    await command.reply({
+    return await command.reply({
       content: `It looks like you've already registered that bot!`,
       ephemeral: true,
     });
