@@ -42,6 +42,7 @@ export async function getXtp(): ReturnType<typeof createClient> {
     baseUrl: String(process.env.XTP_ENDPOINT || 'http://localhost:8080'),
     runInWorker: true,
     logger: getLogger(),
+    timeoutMs: 500,
     functions: {
       'extism:host/env': {
         var_get(context: CurrentPlugin, keyPtr: bigint) {

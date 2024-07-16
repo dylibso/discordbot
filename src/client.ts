@@ -305,7 +305,18 @@ export async function startDiscordClient(logger: Logger) {
     return await command.reply({ content: `I'm sorry, HAL. I don't know what you mean.`, ephemeral: true })
   })
 
-  client.login(DISCORD_BOT_TOKEN);
+  // try to re-login every 2 minutes after start.
+  let timeout = 2 * 60 * 1000;
+  await login();
+  async function login() {
+    try {
+      await client.login(DISCORD_BOT_TOKEN);
+      timeout = 2 * 60 * 1000;
+      setTimeout(login, timeout)
+    } catch (err) {
+      setTimeout(login, Math.max(timeout * 2, 5 * 60 * 1000))
+    }
+  }
 }
 
 function isValidRegex(pattern: string): boolean {

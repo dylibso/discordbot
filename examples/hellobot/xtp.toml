@@ -1,0 +1,11 @@
+app_id = "app_01j2hmjyfdedq8bvdncf8e2jzf"
+
+# This is where 'xtp plugin push' expects to find the wasm file after the build script has run.
+bin = "dist/plugin.wasm"
+extension_point_id = "ext_01j2hmjyfgfy0bqjybwfk7jks1"
+name = "hellobot"
+
+[scripts]
+
+  # xtp plugin build runs this script to generate the wasm file
+  build = "npm run build"

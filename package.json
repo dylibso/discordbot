@@ -33,7 +33,7 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@dylibso/xtp": "0.0.0-rc6",
+    "@dylibso/xtp": "0.0.0-rc7",
     "@fastify/cookie": "^9.3.1",
     "@fastify/oauth2": "^7.8.0",
     "@fastify/session": "^10.7.0",
