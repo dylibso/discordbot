@@ -145,7 +145,7 @@ export async function registerUser(registration: RegisterUser) {
         `, [user.id, JSON.stringify(registration.discord)])
 
         const response = await xtp.inviteGuest({ guestKey: user.id, deliveryMethod: 'link' });
-        patchXtpData(user, { inviteLink: response.link.link })
+        patchXtpData(user, { inviteLink: response.link })
 
         await updateUser(db, user)
       }
