@@ -5,166 +5,162 @@
 # schema.
 version: v1-draft
 exports:
-  - name: handle
+  handle:
     input:
-      $ref: "#/schemas/IncomingEvent"
+      "$ref": "#/components/schemas/IncomingEvent"
+      contentType: application/json
 
 imports:
-  - name: react
+  react:
     input:
-      $ref: "#/schemas/OutgoingReaction"
+      "$ref": "#/components/schemas/OutgoingReaction"
+      contentType: application/json
     output:
-      $ref: "#/schemas/Result"
+      "$ref": "#/components/schemas/Result"
+      contentType: application/json
 
-  - name: request
+  request:
     input:
-      $ref: "#/schemas/OutgoingRequest"
+      "$ref": "#/components/schemas/OutgoingRequest"
+      contentType: application/json
     output:
-      $ref: "#/schemas/Result"
+      "$ref": "#/components/schemas/Result"
+      contentType: application/json
 
-  - name: sendMessage
+  sendMessage:
     input:
-      $ref: "#/schemas/OutgoingMessage"
+      "$ref": "#/components/schemas/OutgoingMessage"
+      contentType: application/json
     output:
-      $ref: "#/schemas/Result"
+      "$ref": "#/components/schemas/Result"
+      contentType: application/json
 
-  - name: watchMessage
+  watchMessage:
     input:
       type: string
-      description: the id of a message to watch
-      contentType: text/plain; charset=UTF-8
+      description: The ID of a message to watch
+      contentType: text/plain; charset=utf-8
     output:
-      $ref: "#/schemas/Result"
+      "$ref": "#/components/schemas/Result"
+      contentType: application/json
 
-schemas:
-  - name: IncomingEvent
-    description: An incoming event
-    required: ['kind', 'channel']
-    contentType: application/json
-    properties:
-      - name: kind
-        type: string
-        description: The reason for the event
+components:
+  schemas:
+    IncomingEvent:
+      description: An incoming event
+      properties:
+        kind:
+          type: string
+          description: The reason for the event
+        message:
+          "$ref": '#/components/schemas/IncomingMessage'
+          nullable: true
+        reaction:
+          "$ref": '#/components/schemas/IncomingReaction'
+          nullable: true
+        response:
+          "$ref": '#/components/schemas/IncomingResponse'
+          nullable: true
+        channel:
+          type: string
+          description: The channel the message was received in
 
-      - name: message
-        $ref: '#/schemas/IncomingMessage'
-      - name: reaction
-        $ref: '#/schemas/IncomingReaction'
-      - name: response 
-        $ref: '#/schemas/IncomingResponse'
+    OutgoingRequest:
+      description: An HTTP request
+      properties:
+        method:
+          type: string
+          description: The HTTP method
+          nullable: true
+        url:
+          type: string
+          description: The URL
+        headers:
+          type: object
+          description: The HTTP headers
+          nullable: true
+        body:
+          type: string
+          description: The HTTP body
+          nullable: true
 
-      - name: channel
-        type: string
-        description: The channel the message was received in
+    OutgoingReaction:
+      description: Send a reaction
+      properties:
+        messageId:
+          type: string
+          description: The message ID
+        with:
+          type: string
+          description: The emoji reaction
 
-  - name: OutgoingRequest
-    description: An HTTP request
-    required: ['url']
-    contentType: application/json
-    properties:
-      - name: method
-        description: the http method
-        type: string
-      - name: url
-        description: the url
-        type: string
-      - name: headers
-        description: the http headers
-        type: object
-        contentType: application/json
-      - name: body
-        description: the http body
-        type: string
-        contentType: application/json
+    IncomingResponse:
+      description: We received a response
+      properties:
+        id:
+          type: string
+          description: The identifier the plugin sent
+        status:
+          type: number
+          description: The HTTP status code
+        headers:
+          type: object
+          description: The HTTP headers
+        body:
+          type: string
+          description: The HTTP body
 
-  - name: OutgoingReaction
-    description: send a reaction
-    required: ['messageId', 'channel', 'emoji']
-    contentType: application/json
-    properties:
-      - name: messageId
-        type: string
-        description: the message id
-      - name: with
-        type: string
-        description: The emoji reaction
+    IncomingReaction:
+      description: A reaction happened
+      properties:
+        message:
+          "$ref": '#/components/schemas/IncomingMessage'
+        from:
+          type: string
+          description: The username that reacted
+        with:
+          type: string
+          description: The emoji reaction
 
-  - name: IncomingResponse
-    description: We received a response
-    required: ['id', 'status', 'headers', 'body']
-    contentType: application/json
-    properties:
-      - name: id
-        type: string
-        description: the identifier the plugin sent
-      - name: status
-        description: the http status code
-        type: number
-        contentType: application/json
-      - name: headers
-        description: the http headers
-        type: object
-        contentType: application/json
-      - name: body
-        description: the http body
-        type: string
-        contentType: application/json
+    IncomingMessage:
+      description: An incoming message
+      properties:
+        id:
+          type: string
+          description: An ID identifying the message
+        content:
+          type: string
+          description: The message text
+        author:
+          type: object
+          description: The author of the message
+        reference:
+          type: string
+          description: The ID of the message to which this message replies
+          nullable: true
 
-  - name: IncomingReaction
-    description: A reaction happened
-    required: ['message', 'from', 'with']
-    contentType: application/json
-    properties:
-      - name: message
-        $ref: '#/schemas/IncomingMessage'
-      - name: from
-        type: string
-        description: The username that reacted
-      - name: with
-        type: string
-        description: The emoji reaction
+    OutgoingMessage:
+      description: An outgoing message
+      properties:
+        message:
+          type: string
+          description: The message text
+        channel:
+          type: string
+          description: The channel the message was received in
+          nullable: true
+        reply:
+          type: string
+          description: A message ID to reply to
+          nullable: true
 
-  - name: IncomingMessage
-    description: An incoming message
-    required: ['id', 'content', 'author']
-    contentType: application/json
-    properties:
-      - name: id
-        type: string
-        description: An id identifying the message.
-      - name: content
-        type: string
-        description: The message text
-      - name: author
-        type: object
-        description: The author of the message
-      - name: reference
-        type: string
-        description: The id of the message to which this message replies
-
-  - name: OutgoingMessage
-    description: An outgoing message
-    required: ['message']
-    contentType: application/json
-    properties:
-      - name: message
-        type: string
-        description: The message text
-      - name: channel
-        type: string
-        description: The channel the message was received in
-      - name: reply
-        type: string
-        description: A message ID to reply to
-
-  - name: Result
-    description: A result.
-    contentType: application/json
-    properties:
-      - name: id
-        type: string
-        description: An id for the result
-      - name: errorCode
-        type: number
-        description: |
-          An error code. Zero indicates success. Negative numbers indicate failure.
+    Result:
+      description: A result
+      properties:
+        id:
+          type: string
+          description: An ID for the result
+        errorCode:
+          type: number
+          description: |
+            An error code. Zero indicates success. Negative numbers indicate failure.
