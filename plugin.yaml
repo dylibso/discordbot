@@ -7,41 +7,41 @@ version: v1-draft
 exports:
   handle:
     input:
-      "$ref": "#/components/schemas/IncomingEvent"
+      $ref: "#/components/schemas/IncomingEvent"
       contentType: application/json
 
 imports:
   react:
     input:
-      "$ref": "#/components/schemas/OutgoingReaction"
+      $ref: "#/components/schemas/OutgoingReaction"
       contentType: application/json
     output:
-      "$ref": "#/components/schemas/Result"
+      $ref: "#/components/schemas/Result"
       contentType: application/json
 
   request:
     input:
-      "$ref": "#/components/schemas/OutgoingRequest"
+      $ref: "#/components/schemas/OutgoingRequest"
       contentType: application/json
     output:
-      "$ref": "#/components/schemas/Result"
+      $ref: "#/components/schemas/Result"
       contentType: application/json
 
   sendMessage:
     input:
-      "$ref": "#/components/schemas/OutgoingMessage"
+      $ref: "#/components/schemas/OutgoingMessage"
       contentType: application/json
     output:
-      "$ref": "#/components/schemas/Result"
+      $ref: "#/components/schemas/Result"
       contentType: application/json
 
   watchMessage:
     input:
       type: string
-      description: The ID of a message to watch
+      description: the id of a message to watch
       contentType: text/plain; charset=utf-8
     output:
-      "$ref": "#/components/schemas/Result"
+      $ref: "#/components/schemas/Result"
       contentType: application/json
 
 components:
@@ -52,15 +52,14 @@ components:
         kind:
           type: string
           description: The reason for the event
+
         message:
-          "$ref": '#/components/schemas/IncomingMessage'
-          nullable: true
+          $ref: '#/components/schemas/IncomingMessage'
         reaction:
-          "$ref": '#/components/schemas/IncomingReaction'
-          nullable: true
-        response:
-          "$ref": '#/components/schemas/IncomingResponse'
-          nullable: true
+          $ref: '#/components/schemas/IncomingReaction'
+        response: 
+          $ref: '#/components/schemas/IncomingResponse'
+
         channel:
           type: string
           description: The channel the message was received in
@@ -69,27 +68,24 @@ components:
       description: An HTTP request
       properties:
         method:
+          description: the http method
           type: string
-          description: The HTTP method
-          nullable: true
         url:
+          description: the url
           type: string
-          description: The URL
         headers:
+          description: the http headers
           type: object
-          description: The HTTP headers
-          nullable: true
         body:
+          description: the http body
           type: string
-          description: The HTTP body
-          nullable: true
 
     OutgoingReaction:
-      description: Send a reaction
+      description: send a reaction
       properties:
         messageId:
           type: string
-          description: The message ID
+          description: the message id
         with:
           type: string
           description: The emoji reaction
@@ -99,22 +95,22 @@ components:
       properties:
         id:
           type: string
-          description: The identifier the plugin sent
+          description: the identifier the plugin sent
         status:
+          description: the http status code
           type: number
-          description: The HTTP status code
         headers:
+          description: the http headers
           type: object
-          description: The HTTP headers
         body:
+          description: the http body
           type: string
-          description: The HTTP body
 
     IncomingReaction:
       description: A reaction happened
       properties:
         message:
-          "$ref": '#/components/schemas/IncomingMessage'
+          $ref: '#/components/schemas/IncomingMessage'
         from:
           type: string
           description: The username that reacted
@@ -127,7 +123,7 @@ components:
       properties:
         id:
           type: string
-          description: An ID identifying the message
+          description: An id identifying the message.
         content:
           type: string
           description: The message text
@@ -136,8 +132,7 @@ components:
           description: The author of the message
         reference:
           type: string
-          description: The ID of the message to which this message replies
-          nullable: true
+          description: The id of the message to which this message replies
 
     OutgoingMessage:
       description: An outgoing message
@@ -148,18 +143,16 @@ components:
         channel:
           type: string
           description: The channel the message was received in
-          nullable: true
         reply:
           type: string
           description: A message ID to reply to
-          nullable: true
 
     Result:
-      description: A result
+      description: A result.
       properties:
         id:
           type: string
-          description: An ID for the result
+          description: An id for the result
         errorCode:
           type: number
           description: |

@@ -16,7 +16,7 @@ jobs:
       - name: test the schema
         run: |
           body="$(jq -rcM -n --arg content "$(cat plugin.yaml)" '{"name":"events_test", "schema": $content}')"
-          EXTENSION_ID=ext_01j24zpza4e63rzkz1pya80ey7
+          EXTENSION_ID=ext_01j8t7m4s6e0trqftejwvh1je5
           curl -sLfi \
             -H "Authorization: Bearer $XTP_TOKEN" \
             -H "content-type: application/json" \
