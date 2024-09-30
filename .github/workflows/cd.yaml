@@ -88,7 +88,7 @@ jobs:
             -H "Authorization: Bearer $XTP_TOKEN" \
             -H "content-type: application/json" \
             -X PUT -d "$body" \
-            'https://xtp-staging.dylibso.com/api/v1/extension-points/'$EXTENSION_ID
+            'https://xtp.dylibso.com/api/v1/extension-points/'$EXTENSION_ID
 
   northflank:
     runs-on: ubuntu-latest
