@@ -1,4 +1,4 @@
-import { Client, Message, TextBasedChannel } from "discord.js";
+import { Client, Message, SendableChannels, TextBasedChannel } from "discord.js";
 
 import { executeHandlers, fetchById, Handler, registerMessageIdInterest } from "./interests";
 import { getLogger } from "../logger";
@@ -217,7 +217,7 @@ export class HostContext {
       xs.type === 0 &&
       xs.guildId === this.handler.guild &&
       (xs.name === channel || xs.id === channel)
-    )) as TextBasedChannel
+    )) as SendableChannels
     if (!chan) {
       return { errorCode: -3, error: new Error('no such channel') }
     }
