@@ -182,6 +182,10 @@ export async function startDiscordClient(logger: Logger) {
       return;
     }
     const command = interaction;
+    logger.info({
+      command: command.commandName,
+      subcommand: command.options.getSubcommand()
+    }, `handle command`)
 
     if (command.commandName === 'manage-plugins') {
       switch (command.options.getSubcommand()) {
@@ -259,7 +263,6 @@ export async function startDiscordClient(logger: Logger) {
             ephemeral: true,
             content: `${'```'}${output}${'```'}`
           })
-
         }
 
         case 'set-allowed-hosts': {

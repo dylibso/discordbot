@@ -77,4 +77,10 @@ jobs:
           ref: '${{ github.event.workflow_run.head_branch }}'
 
       - name: Trigger release flow
-        run: curl -X GET ${{ secrets.NF_WEBHOOK }}?image_tag=$(git rev-parse HEAD)
+        run: |
+          if [ "${{ github.event.workflow_run.head_branch }}" = "production" ]; then
+            WEBHOOK=${{ secrets.NF_WEBHOOK_PRODUCTION }}
+          else
+            WEBHOOK=${{ secrets.NF_WEBHOOK_STAGING }}
+          fi
+          curl -X GET "${WEBHOOK}?image_tag=$(git rev-parse HEAD)"
