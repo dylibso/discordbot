@@ -55,8 +55,13 @@ jobs:
 
       - name: update the schema
         run: |
-          body="$(jq -rcM -n --arg content "$(cat plugin.yaml)" '{"name":"events", "schema": $content}')"
-          EXTENSION_ID=ext_01j8r4jqawfd6tjxh85t3988kc
+          if [ "${{ github.event.workflow_run.head_branch }}" = "production" ]; then
+            EXTENSION_ID=ext_01j8r4jqawfd6tjxh85t3988kc
+          else
+            EXTENSION_ID=ext_01j94w8hekf6ssv2thqs8sh8v0
+          fi
+
+          body="$(jq -rcM -n --arg content "$(cat plugin.yaml)" '{"name":"chat", "schema": $content}')"
           curl -sLfi \
             -H "Authorization: Bearer $XTP_TOKEN" \
             -H "content-type: application/json" \
