@@ -255,7 +255,7 @@ export async function startDiscordClient(logger: Logger) {
             drawHorizontalLine: () => false
           })
 
-          return command.reply({
+          return await command.reply({
             ephemeral: true,
             content: `${'```'}${output}${'```'}`
           })
