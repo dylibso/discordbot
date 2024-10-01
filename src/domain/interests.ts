@@ -156,7 +156,7 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
   const resolved = new Promise(resolve => runCompleted = resolve)
 
   for (const handler of handlers) {
-    promises.push(xtp.extensionPoints.events.handle(handler.userId, arg, {
+    promises.push(xtp.extensionPoints.chat.handle(handler.userId, arg, {
       bindingName: handler.pluginName,
       default: defaultValue,
       hostContext: new HostContext(client, handler, currentChannel, resolved as Promise<void>)
