@@ -60,7 +60,9 @@ export default async function server() {
     return reply.view('home.njk', { base: request.headers['hx-request'] ? 'boosted.njk' : 'base.njk' })
   })
 
-  server.get('/_monitor/ping', async (request, reply) => PING_RESPONSE)
+  server.register(async (server, _opts) => {
+    server.get('/_monitor/ping', async (_request, _reply) => PING_RESPONSE)
+  }, { logLevel: 'error', prefix: '/' })
 
   return new Promise((resolve, reject) => {
     server.listen({ port: PORT, host: HOST }, (err, address) => {
