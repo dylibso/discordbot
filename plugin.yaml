@@ -16,7 +16,7 @@ imports:
       $ref: "#/components/schemas/OutgoingReaction"
       contentType: application/json
     output:
-      $ref: "#/components/schemas/Result"
+      $ref: "#/components/schemas/HandlerResult"
       contentType: application/json
 
   request:
@@ -24,7 +24,7 @@ imports:
       $ref: "#/components/schemas/OutgoingRequest"
       contentType: application/json
     output:
-      $ref: "#/components/schemas/Result"
+      $ref: "#/components/schemas/HandlerResult"
       contentType: application/json
 
   sendMessage:
@@ -32,7 +32,7 @@ imports:
       $ref: "#/components/schemas/OutgoingMessage"
       contentType: application/json
     output:
-      $ref: "#/components/schemas/Result"
+      $ref: "#/components/schemas/HandlerResult"
       contentType: application/json
 
   watchMessage:
@@ -41,7 +41,7 @@ imports:
       description: the id of a message to watch
       contentType: text/plain; charset=utf-8
     output:
-      $ref: "#/components/schemas/Result"
+      $ref: "#/components/schemas/HandlerResult"
       contentType: application/json
 
 components:
@@ -50,19 +50,25 @@ components:
       description: An incoming event
       properties:
         kind:
-          type: string
-          description: The reason for the event
+          $ref: '#/components/schemas/EventKind'
 
         message:
           $ref: '#/components/schemas/IncomingMessage'
+          nullable: true
         reaction:
           $ref: '#/components/schemas/IncomingReaction'
+          nullable: true
         response: 
           $ref: '#/components/schemas/IncomingResponse'
+          nullable: true
 
         channel:
           type: string
           description: The channel the message was received in
+
+    EventKind:
+      description: "The kind of event"
+      enum: ["content", "watch:reference", "watch:reaction:added", "watch:reaction:removed", "http:response"]
 
     OutgoingRequest:
       description: An HTTP request
@@ -133,6 +139,7 @@ components:
         reference:
           type: string
           description: The id of the message to which this message replies
+          nullable: true
 
     OutgoingMessage:
       description: An outgoing message
@@ -143,11 +150,13 @@ components:
         channel:
           type: string
           description: The channel the message was received in
+          nullable: true
         reply:
           type: string
           description: A message ID to reply to
+          nullable: true
 
-    Result:
+    HandlerResult:
       description: A result.
       properties:
         id:
