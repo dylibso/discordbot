@@ -224,7 +224,7 @@ async function registerHandler(db: any, opts: RegisterInterest) {
     opts.guild,
     opts.userId,
     opts.pluginName,
-    JSON.stringify(opts.isAdmin ? ['general'] : ['bots']),
+    JSON.stringify(['bots']),
     JSON.stringify(opts.isAdmin ? ['*'] : []),
     opts.isAdmin ? 10_000 : 500
   ])
