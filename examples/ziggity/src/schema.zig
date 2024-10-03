@@ -16,8 +16,8 @@ const _plugin = extism.Plugin.init(std.heap.wasm_allocator);
 pub const Host = struct {
     ///
     /// It takes input of OutgoingReaction (send a reaction)
-    /// And it returns an output Result (A result.)
-    pub fn react(input: OutgoingReaction) !Result {
+    /// And it returns an output HandlerResult (A result.)
+    pub fn react(input: OutgoingReaction) !HandlerResult {
         const b = try std.json.stringifyAlloc(_plugin.allocator, input, .{});
         const inMem = _plugin.allocateBytes(b);
         if (inMem.offset == 0) {
@@ -33,14 +33,14 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(Result, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
         return out.value;
     }
 
     ///
     /// It takes input of OutgoingRequest (An HTTP request)
-    /// And it returns an output Result (A result.)
-    pub fn request(input: OutgoingRequest) !Result {
+    /// And it returns an output HandlerResult (A result.)
+    pub fn request(input: OutgoingRequest) !HandlerResult {
         const b = try std.json.stringifyAlloc(_plugin.allocator, input, .{});
         const inMem = _plugin.allocateBytes(b);
         if (inMem.offset == 0) {
@@ -56,14 +56,14 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(Result, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
         return out.value;
     }
 
     ///
     /// It takes input of OutgoingMessage (An outgoing message)
-    /// And it returns an output Result (A result.)
-    pub fn sendMessage(input: OutgoingMessage) !Result {
+    /// And it returns an output HandlerResult (A result.)
+    pub fn sendMessage(input: OutgoingMessage) !HandlerResult {
         const b = try std.json.stringifyAlloc(_plugin.allocator, input, .{});
         const inMem = _plugin.allocateBytes(b);
         if (inMem.offset == 0) {
@@ -79,14 +79,14 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(Result, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
         return out.value;
     }
 
     ///
     /// It takes input of []const u8 (the id of a message to watch)
-    /// And it returns an output Result (A result.)
-    pub fn watchMessage(input: []const u8) !Result {
+    /// And it returns an output HandlerResult (A result.)
+    pub fn watchMessage(input: []const u8) !HandlerResult {
         const inMem = _plugin.allocateBytes(input);
         if (inMem.offset == 0) {
             return error.ExtismBadMemory;
@@ -101,8 +101,26 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(Result, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
         return out.value;
+    }
+};
+
+/// A result.
+pub const HandlerResult = struct {
+    /// An error code. Zero indicates success. Negative numbers indicate failure.
+    errorCode: i64,
+    /// An id for the result
+    id: ?[]const u8,
+
+    /// Internally used function, should not be called by plugin authors.
+    pub fn XXX__decodeBase64Fields(self: *HandlerResult) !*HandlerResult {
+        return self;
+    }
+
+    /// Internally used function, should not be called by plugin authors.
+    pub fn XXX__encodeBase64Fields(self: *HandlerResult) !*HandlerResult {
+        return self;
     }
 };
 
@@ -110,33 +128,35 @@ pub const Host = struct {
 pub const IncomingEvent = struct {
     /// The channel the message was received in
     channel: []const u8,
-    /// The reason for the event
+    /// The guild the message was received in
+    guild: []const u8,
+    /// The kind of event (one of "content", "watch:reference", "watch:reaction:added", "watch:reaction:removed", "http:response")
     kind: []const u8,
     /// An incoming message
-    message: IncomingMessage,
+    message: ?IncomingMessage = null,
     /// A reaction happened
-    reaction: IncomingReaction,
+    reaction: ?IncomingReaction = null,
     /// We received a response
-    response: IncomingResponse,
+    response: ?IncomingResponse = null,
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__decodeBase64Fields(self: *IncomingEvent) !*IncomingEvent {
-        self.message = (try self.message.XXX__decodeBase64Fields()).*;
+        self.message = (try self.message.?.XXX__decodeBase64Fields()).*;
 
-        self.reaction = (try self.reaction.XXX__decodeBase64Fields()).*;
+        self.reaction = (try self.reaction.?.XXX__decodeBase64Fields()).*;
 
-        self.response = (try self.response.XXX__decodeBase64Fields()).*;
+        self.response = (try self.response.?.XXX__decodeBase64Fields()).*;
 
         return self;
     }
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__encodeBase64Fields(self: *IncomingEvent) !*IncomingEvent {
-        self.message = (try self.message.XXX__encodeBase64Fields()).*;
+        self.message = (try self.message.?.XXX__encodeBase64Fields()).*;
 
-        self.reaction = (try self.reaction.XXX__encodeBase64Fields()).*;
+        self.reaction = (try self.reaction.?.XXX__encodeBase64Fields()).*;
 
-        self.response = (try self.response.XXX__encodeBase64Fields()).*;
+        self.response = (try self.response.?.XXX__encodeBase64Fields()).*;
 
         return self;
     }
@@ -144,14 +164,14 @@ pub const IncomingEvent = struct {
 
 /// An incoming message
 pub const IncomingMessage = struct {
-    /// The author of the message
-    author: std.json.ArrayHashMap(std.json.Value),
+    /// The username of the author of the message
+    author: []const u8,
     /// The message text
     content: []const u8,
     /// An id identifying the message.
     id: []const u8,
     /// The id of the message to which this message replies
-    reference: []const u8,
+    reference: ?[]const u8 = null,
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__decodeBase64Fields(self: *IncomingMessage) !*IncomingMessage {
@@ -213,11 +233,11 @@ pub const IncomingResponse = struct {
 /// An outgoing message
 pub const OutgoingMessage = struct {
     /// The channel the message was received in
-    channel: []const u8,
+    channel: ?[]const u8,
     /// The message text
     message: []const u8,
     /// A message ID to reply to
-    reply: []const u8,
+    reply: ?[]const u8,
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__decodeBase64Fields(self: *OutgoingMessage) !*OutgoingMessage {
@@ -266,24 +286,6 @@ pub const OutgoingRequest = struct {
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__encodeBase64Fields(self: *OutgoingRequest) !*OutgoingRequest {
-        return self;
-    }
-};
-
-/// A result.
-pub const Result = struct {
-    /// An error code. Zero indicates success. Negative numbers indicate failure.
-    errorCode: i64,
-    /// An id for the result
-    id: []const u8,
-
-    /// Internally used function, should not be called by plugin authors.
-    pub fn XXX__decodeBase64Fields(self: *Result) !*Result {
-        return self;
-    }
-
-    /// Internally used function, should not be called by plugin authors.
-    pub fn XXX__encodeBase64Fields(self: *Result) !*Result {
         return self;
     }
 };

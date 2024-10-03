@@ -1,8 +1,8 @@
-app_id = "app_01hvhzafnwfb5bewmybe888ff8"
+app_01j8r463d3f6c91hdevkctb7cw = "app_01j8r463d3f6c91hdevkctb7cw"
 
 # This is where 'xtp plugin push' expects to find the wasm file after the build script has run.
 bin = "dist/plugin.wasm"
-extension_point_id = "ext_01j24z4yc2emetf0hysrnyg41j"
+extension_point_id = "ext_01j8r4jqawfd6tjxh85t3988kc"
 name = "keanu"
 
 [scripts]
