@@ -5,7 +5,7 @@ import {
 import { sendMessage } from "./pdk";
 
 // Make this test:
-// - In discord `#bots`, run: `/pluggy listen-for greetings send-message`.
+// - In discord `#bots`, run: `/extendabot listen-for greetings send-message`.
 // - In a terminal in the 00-send-message directory, run `xtp plugin push`.
 // - In discord: say "greetings".
 export function handleImpl(input: IncomingEvent) {

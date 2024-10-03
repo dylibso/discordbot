@@ -1,12 +1,12 @@
 # Writing a plugin
 
-Hi hello welcome! To write a guest for pluggy, start by:
+Hi hello welcome! To write a guest for extendabot, start by:
 
-1. Running `/pluggy signup` in a pluggy-powered server. Click on the link and register
+1. Running `/extendabot signup` in a extendabot-powered server. Click on the link and register
    with XTP!
-2. Run `/pluggy listen-for <some regex pattern> <some plugin>`. The plugin name is optional --
-   if you can't think of one we'll generate one for you. For example, `/pluggy listen-for wow`
-   or `/pluggy listen-for ^[A-Z 0-9!.]+$ LOUDBOT`.
+2. Run `/extendabot listen-for <some regex pattern> <some plugin>`. The plugin name is optional --
+   if you can't think of one we'll generate one for you. For example, `/extendabot listen-for wow`
+   or `/extendabot listen-for ^[A-Z 0-9!.]+$ LOUDBOT`.
 3. Create a plugin using the xtp cli ([get started here](https://docs.xtp.dylibso.com/docs/guest-usage/getting-started)).
 4. Publish your plugin and test it in the `#bots` channel.
 

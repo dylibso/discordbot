@@ -3,7 +3,7 @@ mod pdk;
 use extism_pdk::*;
 use pdk::*;
 
-// - In discord `#bots`, run: `/pluggy listen-for "robot" react`.
+// - In discord `#bots`, run: `/extendabot listen-for "robot" react`.
 // - In a terminal in the 02-react directory, run `xtp plugin push`.
 // - In discord: say "any robots here".
 pub(crate) fn handle(input: IncomingEvent) -> Result<(), Error> {
