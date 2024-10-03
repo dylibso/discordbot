@@ -67,6 +67,10 @@ components:
           type: string
           description: The channel the message was received in
 
+        guild:
+          type: string
+          description: The guild the message was received in
+
     OutgoingRequest:
       description: An HTTP request
       properties:
@@ -131,8 +135,8 @@ components:
           type: string
           description: The message text
         author:
-          type: object
-          description: The author of the message
+          type: string
+          description: The username of the author of the message
         reference:
           type: string
           description: The id of the message to which this message replies
@@ -159,6 +163,7 @@ components:
         id:
           type: string
           description: An id for the result
+          nullable: true
         errorCode:
           type: number
           description: |

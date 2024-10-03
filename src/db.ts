@@ -3,9 +3,9 @@ import createClient from '@dylibso/xtp';
 import EventEmitter from 'node:events'
 import pg from 'pg'
 
+import { PGURL, XTP_PLUGIN_TIMEOUT } from './config';
 import { HostContext } from './domain/host-context';
 import { getLogger } from './logger';
-import { PGURL } from './config';
 
 const logger = getLogger()
 
@@ -42,7 +42,7 @@ export async function getXtp(): ReturnType<typeof createClient> {
     baseUrl: String(process.env.XTP_ENDPOINT || 'http://localhost:8080'),
     runInWorker: true,
     logger: getLogger(),
-    timeoutMs: 500,
+    timeoutMs: XTP_PLUGIN_TIMEOUT,
     functions: {
       'extism:host/env': {
         var_get(context: CurrentPlugin, keyPtr: bigint) {

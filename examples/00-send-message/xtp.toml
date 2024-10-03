@@ -1,0 +1,17 @@
+app_id = "app_01j8t7da7fe8ta764fxpw36ysp"
+
+# This is where 'xtp plugin push' expects to find the wasm file after the build script has run.
+bin = "dist/plugin.wasm"
+extension_point_id = "ext_01j94w8hekf6ssv2thqs8sh8v0"
+name = "send-message"
+
+[scripts]
+
+  # xtp plugin build runs this script to generate the wasm file
+  build = "sh prepare.sh && npm run build"
+
+  # xtp plugin init runs this script to format the plugin code
+  format = "npm run format"
+
+  # xtp plugin init runs this script before running the format script
+  prepare = "sh prepare.sh && npm install"
