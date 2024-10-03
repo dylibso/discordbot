@@ -1,7 +1,7 @@
 #include "pdk.gen.hpp"
 #include <extism-pdk.hpp>
 
-// - In discord `#bots`, run: `/xtp listen-for "you are a" react`.
+// - In discord `#bots`, run: `/pluggy listen-for "you are a" react`.
 // - In a terminal in the 03-watch directory, run `xtp plugin push`.
 // - In discord: say "you are a robot".
 std::expected<void, pdk::Error> impl::handle(pdk::IncomingEvent &&input) {

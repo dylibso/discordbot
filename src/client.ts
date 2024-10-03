@@ -1,7 +1,7 @@
 import { ChannelType, Client, CommandInteraction, GatewayIntentBits, GuildTextBasedChannel, PermissionFlagsBits, PermissionsBitField, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import safe from 'safe-regex';
 
-import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER } from './config';
+import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER, DISCORD_PLUGIN_COMMAND, DISCORD_MANAGE_COMMAND } from './config';
 import { findUserByUsername, getXtpData, registerUser } from './domain/users';
 import { addHandlerToChannel, executeHandlers, fetchByContentInterest, fetchByMessageIdInterest, listHandlers, registerMessageContentInterest, removeHandlerFromChannel, setHandlerAllowedHosts } from './domain/interests';
 import { getLogger } from './logger';
@@ -187,7 +187,7 @@ export async function startDiscordClient(logger: Logger) {
       subcommand: command.options.getSubcommand()
     }, `handle command`)
 
-    if (command.commandName === 'manage-plugins') {
+    if (command.commandName === DISCORD_MANAGE_COMMAND) {
       switch (command.options.getSubcommand()) {
         default: break;
 
@@ -205,7 +205,7 @@ export async function startDiscordClient(logger: Logger) {
 
           const [username, pluginName] = plugin!.split(':')
           if (!pluginName) {
-            return await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+            return await command.reply({ content: `Could not parse bot name. Use \`username:botname\` form; see \`/${DISCORD_MANAGE_COMMAND} list\`.`, ephemeral: true })
           }
 
           const channels = await addHandlerToChannel(username, pluginName, command.guild!.id, (channel as GuildTextBasedChannel).name)
@@ -231,7 +231,7 @@ export async function startDiscordClient(logger: Logger) {
 
           const [username, pluginName] = plugin!.split(':')
           if (!pluginName) {
-            return await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+            return await command.reply({ content: `Could not parse bot name. Use \`username:botname\` form; see \`/${DISCORD_MANAGE_COMMAND} list\`.`, ephemeral: true })
           }
 
           const channelName = (channel as GuildTextBasedChannel).name
@@ -275,7 +275,7 @@ export async function startDiscordClient(logger: Logger) {
 
           const [username, pluginName] = plugin!.split(':')
           if (!pluginName) {
-            return await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+            return await command.reply({ content: `Could not parse bot name. Use \`username:botname\` form; see \`/${DISCORD_MANAGE_COMMAND} list\`.`, ephemeral: true })
           }
 
           const hostList = (hosts || '').split(',')
@@ -295,7 +295,7 @@ export async function startDiscordClient(logger: Logger) {
           })
         }
       }
-    } else if (command.commandName === 'xtp') {
+    } else if (command.commandName === DISCORD_PLUGIN_COMMAND) {
       switch (command.options.getSubcommand()) {
         default: break;
 
@@ -355,7 +355,7 @@ async function handleSignupCommand(command: CommandInteraction) {
 
   if (!created) {
     return await command.reply({
-      content: `It looks like you've already registered! Run \`/xtp listen-for\` to create a plugin.
+      content: `It looks like you've already registered! Run \`/${DISCORD_PLUGIN_COMMAND} listen-for\` to create a plugin.
 
 Visit ${xtp.inviteLink} if you haven't already; if you have any trouble ping one of the admins.
     `,
@@ -364,14 +364,14 @@ Visit ${xtp.inviteLink} if you haven't already; if you have any trouble ping one
   }
 
   await command.reply({
-    content: `To get started, please activate your new XTP Host by clicking the link below.
+    content: `To get started, please register as a guest developer by clicking the link below.
   
   ${xtp.inviteLink}
   Once your account is active, you can dive right in and start building your first plugin.
   
   XTP Product docs can be found here: https://docs.xtp.dylibso.com/
   
-  Run \`/xtp listen-for\` to register a plugin.`,
+  Run \`/${DISCORD_PLUGIN_COMMAND} listen-for\` to register a plugin.`,
     ephemeral: true,
   });
 }
@@ -382,8 +382,8 @@ async function refreshCommands(rest: REST, logger: Logger) {
   }
 
   const management = new SlashCommandBuilder()
-    .setName('manage-plugins')
-    .setDescription('Control XTP plugins')
+    .setName(DISCORD_MANAGE_COMMAND)
+    .setDescription('Control plugins')
     .addSubcommand(subcommand => subcommand
       .setName('invite')
       .setDescription('add plugin to channel (admin only)')
@@ -430,7 +430,7 @@ async function refreshCommands(rest: REST, logger: Logger) {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 
   const plugins = new SlashCommandBuilder()
-    .setName('xtp')
+    .setName(DISCORD_PLUGIN_COMMAND)
     .setDescription('make discord squishy: write bots')
     .addSubcommand(subcommand => subcommand
       .setName('signup')

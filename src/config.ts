@@ -11,6 +11,9 @@ assert(DISCORD_BOT_CLIENT_ID, 'Need to set DISCORD_BOT_CLIENT_ID env var');
 export const DISCORD_GUILD_FILTER = new Set((process.env.DISCORD_GUILD_FILTER || '').split(','))
 export const DISCORD_CHANNEL_FILTER = new Set((process.env.DISCORD_CHANNEL_FILTER || '').split(','))
 
+export const DISCORD_PLUGIN_COMMAND = process.env.DISCORD_PLUGIN_COMMAND || 'pluggy'
+export const DISCORD_MANAGE_COMMAND = process.env.DISCORD_MANAGE_COMMAND || 'manage-plugins'
+
 export const PGURL = process.env.PGURL
 export const HOST = String(process.env.HOST || '0.0.0.0')
 export const PORT = Number(process.env.PORT) || 8124
