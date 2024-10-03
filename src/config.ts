@@ -15,4 +15,4 @@ export const PGURL = process.env.PGURL
 export const HOST = String(process.env.HOST || '0.0.0.0')
 export const PORT = Number(process.env.PORT) || 8124
 
-export const XTP_PLUGIN_TIMEOUT = Number(process.env.XTP_PLUGIN_TIMEOUT) || 100
+export const XTP_PLUGIN_TIMEOUT = Number(process.env.XTP_PLUGIN_TIMEOUT) || 500
