@@ -205,7 +205,7 @@ export async function startDiscordClient(logger: Logger) {
 
           const [username, pluginName] = plugin!.split(':')
           if (!pluginName) {
-            await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+            return await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
           }
 
           const channels = await addHandlerToChannel(username, pluginName, command.guild!.id, (channel as GuildTextBasedChannel).name)
@@ -222,16 +222,16 @@ export async function startDiscordClient(logger: Logger) {
           const channel = command.options.getChannel('channel') || command.channel
 
           if (!plugin) {
-            await command.reply({ content: "Plugin name is required", ephemeral: true })
+            return await command.reply({ content: "Plugin name is required", ephemeral: true })
           }
 
           if (!channel || channel.type !== ChannelType.GuildText) {
-            await command.reply({ content: "Could not infer channel name", ephemeral: true })
+            return await command.reply({ content: "Could not infer channel name", ephemeral: true })
           }
 
           const [username, pluginName] = plugin!.split(':')
           if (!pluginName) {
-            await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+            return await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
           }
 
           const channelName = (channel as GuildTextBasedChannel).name
@@ -270,12 +270,12 @@ export async function startDiscordClient(logger: Logger) {
           const hosts = command.options.getString('hosts')
 
           if (!plugin) {
-            await command.reply({ content: "Plugin name is required", ephemeral: true })
+            return await command.reply({ content: "Plugin name is required", ephemeral: true })
           }
 
           const [username, pluginName] = plugin!.split(':')
           if (!pluginName) {
-            await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
+            return await command.reply({ content: "Could not parse bot name. Use `username:botname` form; see `/manage-plugins list`.", ephemeral: true })
           }
 
           const hostList = (hosts || '').split(',')
