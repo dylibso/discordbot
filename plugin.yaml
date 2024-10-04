@@ -122,8 +122,21 @@ components:
           type: string
           description: The username that reacted
         with:
+          $ref: '#/components/schemas/Emoji'
+
+    Emoji:
+      description: An emoji used to react
+      properties:
+        id:
           type: string
-          description: The emoji reaction
+          nullable: true
+          description: "The id of the reaction (if custom); null if a built-in emoji"
+        animated:
+          type: boolean
+          description: whether or not the emoji is animated
+        name:
+          type: string
+          description: "the name used for the reactji; built-in emoji will be the literal character, otherwise the text name appears here"
 
     IncomingMessage:
       description: An incoming message
