@@ -26,6 +26,7 @@ export class HostContext {
   }
 
   getVariable(key: string) {
+    logger.info({ key, handler: this.handler.pluginName, present: key in this.handler.brain }, 'getting key')
     if (key === '__proto__') {
       return ''
     }
@@ -33,6 +34,7 @@ export class HostContext {
   }
 
   setVariable(key: string, value: string) {
+    logger.info({ key, handler: this.handler.pluginName }, 'setting key')
     if (key !== '__proto__') {
       this.handler.brain[key] = value
     }
