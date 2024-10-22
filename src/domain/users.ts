@@ -24,11 +24,6 @@ function patchXtpData(user: User, data: Partial<XtpData>) {
   user.data.xtp = { ...getXtpData(user), ...data }
 }
 
-export interface OAuthGitHubCredentials {
-  oauth: { access_token: string, scope: string, token_type: string },
-  user: { login: string, avatar_url: string, name: string, [k: string]: any },
-}
-
 export interface DiscordCredentials {
   id: string, username: string, discriminator: string, avatar?: string | null, hexAccentColor?: number, [k: string]: any
 }
@@ -40,28 +35,8 @@ export interface EmailPassword {
 
 export interface RegisterUser {
   username: string,
-  github?: OAuthGitHubCredentials
   emailPassword?: EmailPassword
   discord?: DiscordCredentials
-}
-
-export async function findUserByGithubLogin(githubLogin: string) {
-  const db = await getDatabaseConnection()
-
-  const { rows: [user = null] } = await db.query(`
-    SELECT
-      "users".*
-    FROM "users"
-    LEFT JOIN "credentials" on "credentials"."user_id" = "users"."id"
-    WHERE
-      "credentials"."type" = 'oauth-github' AND
-      "credentials"."deleted_at" is null AND
-      "users"."deleted_at" is null AND
-      "credentials"."data" ->> 'login' = $1
-    LIMIT 1
-  `, [githubLogin])
-
-  return user
 }
 
 export async function findUserByUsername(username: string): Promise<User | null> {
@@ -109,28 +84,7 @@ export async function registerUser(registration: RegisterUser) {
 
       const { rows: [user] } = result
 
-      if (registration.github) {
-        await db.query(`
-          INSERT INTO "credentials" (
-            user_id,
-            "type",
-            data
-          ) VALUES (
-            $1,
-            'oauth-github',
-            $2::jsonb
-          );
-        `, [user.id, JSON.stringify(registration.github.user)])
-
-        await xtp.inviteGuest({
-          name: registration.github.user.name,
-          email: registration.github.user.email,
-          guestKey: user.id,
-          deliveryMethod: 'email'
-        }).catch(err => {
-          logger.error(err)
-        })
-      } else if (registration.discord) {
+      if (registration.discord) {
         logger.info(`user signup via discord; username="${registration.username}"`)
         await db.query(`
           INSERT INTO "credentials" (

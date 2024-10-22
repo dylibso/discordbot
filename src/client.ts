@@ -297,14 +297,18 @@ export async function startDiscordClient(logger: Logger) {
       }
     } else if (command.commandName === DISCORD_PLUGIN_COMMAND) {
       switch (command.options.getSubcommand()) {
-        default: break;
-
         case 'signup': return await handleSignupCommand(command)
 
         case 'listen-for': return await handleListenCommand(client, command);
+
+        default: break;
       }
     }
 
+    logger.warn({
+      command: command.commandName,
+      subcommand: command.options.getSubcommand()
+    }, `could not find command (expected one of ${DISCORD_MANAGE_COMMAND} or ${DISCORD_PLUGIN_COMMAND})`)
     return await command.reply({ content: `I'm sorry, HAL. I don't know what you mean.`, ephemeral: true })
   })
 
@@ -437,11 +441,20 @@ async function refreshCommands(rest: REST, logger: Logger) {
       .setDescription('sign up to write plugins')
     )
     .addSubcommand(subcommand => subcommand
+      .setName('logs')
+      .addStringOption(option => option
+        .setName('plugin')
+        .setDescription('The name of the plugin')
+        .setRequired(true)
+      )
+      .setDescription('Get the most recent logs for a plugin')
+    )
+    .addSubcommand(subcommand => subcommand
       .setName('listen-for')
       .setDescription('Tell a plugin to listen for certain message content')
       .addStringOption(option => option
         .setName('regex')
-        .setDescription('the regex to match')
+        .setDescription('the regex to match (e.g. "[a-zA-Z0-9]+", POSIX regular expression)')
         .setRequired(true)
       )
       .addStringOption(option => option
