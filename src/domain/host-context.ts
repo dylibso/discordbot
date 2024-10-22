@@ -169,9 +169,10 @@ export class HostContext {
   }
 
   async react(reaction: any) {
+    const log = logger.child({ func: 'react', handler: this.handler.id })
     this.handler.ratelimitingCurrentTokens = Math.max(0, this.handler.ratelimitingCurrentTokens - TOKEN_COST_PER_REACTION)
     if (this.handler.ratelimitingCurrentTokens === 0) {
-      logger.warn(`hostFunction.react: handler ran out of tokens (handler=${this.handler.id})`)
+      log.warn(`handler ran out of tokens`)
       return { errorCode: -999, error: new Error('not enough tokens') }
     }
 
@@ -183,11 +184,13 @@ export class HostContext {
       (xs.name === channel || String(xs.id) === String(channel))
     )) as TextBasedChannel
     if (!chan) {
+      log.warn('no channel by that id')
       return { errorCode: -3, error: new Error('no such channel') }
     }
 
     const msg = chan.messages.cache.find(xs => xs.id === messageId) as Message
     if (!msg) {
+      log.warn('no message by that id')
       return { errorCode: -4, error: new Error('no such message') }
     }
 
@@ -197,8 +200,10 @@ export class HostContext {
     )
 
     if (err) {
+      log.error({ error: err }, 'discord error')
       return { errorCode: err.code, error: new Error('discord error') }
     }
+    log.info('sent reaction')
     return { errorCode: 0, id: result.message.id }
   }
 
