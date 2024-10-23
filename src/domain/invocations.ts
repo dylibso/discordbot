@@ -14,13 +14,15 @@ export async function createInvocation(db: any, invocations: InvocationData) {
       result,
       duration,
       cost,
-      logs
+      logs,
+      created_at
     ) SELECT
-      handler_id,
-      result,
-      duration,
-      cost,
-      logs
+      a.handler_id,
+      a.result,
+      a.duration,
+      a.cost,
+      a.logs,
+      now()
     FROM UNNEST(
       $1::uuid[],
       $2::text[],
