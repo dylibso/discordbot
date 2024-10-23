@@ -29,7 +29,7 @@ export async function startDiscordClient(logger: Logger) {
   });
 
   client.on('ready', () => {
-    logger.info(`Logged in as ${client.user!.tag}!`);
+    logger.info({ tag: client.user!.tag }, `Logged in!`);
   });
 
   client.on('messageCreate', async message => {
@@ -45,11 +45,11 @@ export async function startDiscordClient(logger: Logger) {
     }
 
     if (DISCORD_GUILD_FILTER.size && !DISCORD_GUILD_FILTER.has(guild.name)) {
-      logger.info(`skipping message; not in guild filter (got="${guild.name}"; valid="${[...DISCORD_GUILD_FILTER].join('", "')}")`)
+      logger.info({ got: guild.name, valid: [...DISCORD_GUILD_FILTER].join('", "') }, `skipping message; not in guild filter`)
       return
     }
 
-    logger.info(`Incoming message in "${guild.name}" "#${message.channel.name}" (${guild.id}): `, message.content);
+    logger.info({ guild: guild.name, channel: message.channel.name, content: message.content }, `Incoming message`);
     const handlers = await fetchByContentInterest({ guild: guild.id, channel: message.channel.name, content: message.content });
     await executeHandlers(client, handlers, {
       channel: message.channel.name,
@@ -101,7 +101,7 @@ export async function startDiscordClient(logger: Logger) {
     }
 
     if (DISCORD_GUILD_FILTER.size && !DISCORD_GUILD_FILTER.has(guild.name)) {
-      logger.info(`skipping message; not in guild filter (got="${guild.name}"; valid="${[...DISCORD_GUILD_FILTER].join('", "')}")`)
+      logger.info({ got: guild.name, valid: [...DISCORD_GUILD_FILTER].join('", "') }, `skipping message; not in guild filter`)
       return
     }
 
