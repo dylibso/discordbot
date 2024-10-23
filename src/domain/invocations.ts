@@ -7,7 +7,9 @@ export interface InvocationData {
   costs: number[],
   logs: any[],
 }
+
 export async function createInvocation(db: any, invocations: InvocationData) {
+  console.log([invocations.handlerIds, invocations.results, invocations.durations, invocations.costs, invocations.logs])
   await db.query(`
     INSERT INTO "invocations" (
       handler_id,
