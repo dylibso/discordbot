@@ -85,7 +85,7 @@ export async function registerUser(registration: RegisterUser) {
       const { rows: [user] } = result
 
       if (registration.discord) {
-        logger.info(`user signup via discord; username="${registration.username}"`)
+        logger.info({ username: registration.username }, `user signup via discord`)
         await db.query(`
           INSERT INTO "credentials" (
             user_id,

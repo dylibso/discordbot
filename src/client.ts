@@ -1,4 +1,4 @@
-import { ChannelType, Client, CommandInteraction, GatewayIntentBits, GuildTextBasedChannel, PermissionFlagsBits, PermissionsBitField, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { AttachmentBuilder, ChannelType, Client, CommandInteraction, GatewayIntentBits, GuildTextBasedChannel, PermissionFlagsBits, PermissionsBitField, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import safe from 'safe-regex';
 
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER, DISCORD_PLUGIN_COMMAND, DISCORD_MANAGE_COMMAND } from './config';
@@ -7,6 +7,7 @@ import { addHandlerToChannel, executeHandlers, fetchByContentInterest, fetchByMe
 import { getLogger } from './logger';
 import { getBorderCharacters, table } from 'table';
 import pokemon from 'pokemon';
+import { fetchLastInvocation } from './domain/invocations';
 
 type Logger = ReturnType<typeof getLogger>
 
@@ -300,6 +301,7 @@ export async function startDiscordClient(logger: Logger) {
         case 'signup': return await handleSignupCommand(command)
 
         case 'listen-for': return await handleListenCommand(client, command);
+        case 'logs': return await handleLogsCommand(client, command);
 
         default: break;
       }
@@ -476,6 +478,59 @@ async function refreshCommands(rest: REST, logger: Logger) {
     logger.error(error);
   }
 }
+
+async function handleLogsCommand(client: Client, command: CommandInteraction) {
+  const plugin = command.options.get('plugin')?.value as string
+  let [username, pluginName] = plugin!.split(':')
+  if (!pluginName) {
+    pluginName = username
+    username = command.user.username
+  }
+
+  if (!pluginName) {
+    return await command.reply({ content: `Could not parse bot name.`, ephemeral: true })
+  }
+
+  const isAdmin = (
+    command.memberPermissions &&
+    command.memberPermissions.has([PermissionsBitField.Flags.Administrator])
+  )
+
+  if (command.user.username !== username && !isAdmin) {
+    return await command.reply({
+      content: "You can only request logs for your own plugins",
+      ephemeral: true,
+    })
+  }
+
+  const invocation = await fetchLastInvocation(username, pluginName)
+  if (!invocation) {
+    return await command.reply({
+      content: "Plugin hasn't been invoked.",
+      ephemeral: true,
+    })
+  }
+
+  const file = new AttachmentBuilder(Buffer.from(JSON.stringify(invocation.logs), 'utf8'), {
+    name: 'logs.json',
+    description: 'json logs'
+  })
+
+  return await command.reply({
+    content: `
+${pluginName} was last executed at ${invocation.created_at}.
+
+It ran for ${invocation.duration} millisecond${invocation.duration === 1 ? '' : 's'} and used ${invocation.cost} token${invocation.cost === 1 ? '' : 's'}.
+
+It produced the following result: ${'```'}
+${invocation.result}
+${'```'}
+    `.trim(),
+    ephemeral: true,
+    files: [file]
+  })
+}
+
 async function handleListenCommand(client: Client, command: CommandInteraction) {
   const regex = command.options.get('regex')?.value as string;
   const plugin = command.options.get('plugin')?.value as string || pokemon.random().toLowerCase();
@@ -542,4 +597,3 @@ Run \`xtp plugin init --path ${plugin}\`, then \`xtp plugin build\` and \`xtp pl
     ephemeral: true,
   });
 }
-

@@ -35,3 +35,7 @@ conservative! If you start to bump into this, please ask us for more tokens --
 we're happy to bump you up. The token rate is set low so that bugs in new
 plugins don't accidentally flood the server (or take too many resources from
 the bot process.)
+
+If you need to see logs for your plugin, you can run `/extendabot logs pluginname` --
+Extendabot should respond with some statistics about the last execution and the logs
+from that execution.
