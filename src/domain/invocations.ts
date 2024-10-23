@@ -21,7 +21,13 @@ export async function createInvocation(db: any, invocations: InvocationData) {
       duration,
       cost,
       logs
-    FROM UNNEST($1::uuid[], $2::text[], $3::integer[], $4::integer[], $5::jsonb[]) a;
+    FROM UNNEST(
+      $1::uuid[],
+      $2::text[],
+      $3::integer[],
+      $4::integer[],
+      $5::jsonb[]
+    ) as a("handler_id", "result", "duration", "cost", "logs");
   `, [invocations.handlerIds, invocations.results, invocations.durations, invocations.costs, invocations.logs]);
 }
 
