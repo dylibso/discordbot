@@ -32,7 +32,7 @@ export async function createInvocation(db: any, invocations: InvocationData) {
       $4::integer[],
       $5::jsonb[]
     ) as a("handler_id", "result", "duration", "cost", "logs");
-  `, [invocations.handlerIds, invocations.results, invocations.durations, invocations.costs, invocations.logs]);
+  `, [invocations.handlerIds, invocations.results, invocations.durations, invocations.costs, invocations.logs.map(xs => JSON.stringify(xs))]);
 }
 
 interface Invocation {
@@ -53,7 +53,7 @@ export async function fetchLastInvocation(username: string, handlerName: string)
       LEFT JOIN "users" on "user_id"="users"."id"
       WHERE
         "users"."username" = $1 AND
-        "handlers"."plugin_name" = $2
+        "handlers"."plugin_name" = $2 
       LIMIT 1
     )
     SELECT

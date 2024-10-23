@@ -481,9 +481,14 @@ async function refreshCommands(rest: REST, logger: Logger) {
 
 async function handleLogsCommand(client: Client, command: CommandInteraction) {
   const plugin = command.options.get('plugin')?.value as string
-  const [username, pluginName] = plugin!.split(':')
+  let [username, pluginName] = plugin!.split(':')
   if (!pluginName) {
-    return await command.reply({ content: `Could not parse bot name. Use \`username:botname\` form; see \`/${DISCORD_MANAGE_COMMAND} list\`.`, ephemeral: true })
+    pluginName = username
+    username = command.user.username
+  }
+
+  if (!pluginName) {
+    return await command.reply({ content: `Could not parse bot name.`, ephemeral: true })
   }
 
   const isAdmin = (
@@ -506,9 +511,10 @@ async function handleLogsCommand(client: Client, command: CommandInteraction) {
     })
   }
 
-  const file = new AttachmentBuilder(JSON.stringify(invocation.logs))
-  file.setName('logs.json')
-  file.setDescription('json logs')
+  const file = new AttachmentBuilder(Buffer.from(JSON.stringify(invocation.logs), 'utf8'), {
+    name: 'logs.json',
+    description: 'json logs'
+  })
 
   return await command.reply({
     content: `
