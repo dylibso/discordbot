@@ -3,6 +3,7 @@ import { Client } from "discord.js";
 import { getDatabaseConnection, getXtp } from "../db";
 import { getLogger } from "../logger";
 import { HostContext } from "./host-context";
+import { createInvocation, InvocationData } from "./invocations";
 
 const logger = getLogger()
 
@@ -20,6 +21,8 @@ export interface Handler {
   ratelimitingMaxTokens: number
   ratelimitingLastReset: Date
   ratelimitingCurrentTokens: number
+
+  logs: { ts: number, level: string, message: string }[]
 
   startTokens: number
   brain: Record<string, string>
@@ -59,9 +62,10 @@ function initializeHandlersFromRows(rows: any[]) {
     const addedTokens = Math.floor(elapsedSeconds * (row.ratelimitingMaxTokens / 60))
     row.ratelimitingCurrentTokens = Math.min(row.ratelimitingMaxTokens, row.ratelimitingCurrentTokens + addedTokens)
     if (row.ratelimitingCurrentTokens === 0) {
-      logger.warn(`skipping handler due to token exhaustion; hander=${row.id}`)
+      logger.warn({ handler: row.id }, `skipping handler due to token exhaustion`)
     }
     row.startTokens = row.ratelimitingCurrentTokens
+    row.logs = []
     return row.ratelimitingCurrentTokens > 0
   }) as Handler[];
 }
@@ -161,14 +165,22 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
       default: defaultValue,
       hostContext: new HostContext(client, handler, currentChannel, resolved as Promise<void>)
     }).then(
-      _ => [, Date.now() - start],
-      err => [err, Date.now() - start]
+      v => [, Date.now() - start, v],
+      err => [err, Date.now() - start, null]
     ));
+  }
+
+  const invocations: InvocationData = {
+    handlerIds: [],
+    results: [],
+    durations: [],
+    costs: [],
+    logs: [],
   }
 
   let idx = 0;
   for (const result of await Promise.all(promises)) {
-    const [err, elapsed]: [Error | null, number] = result as any
+    const [err, elapsed, value]: [Error | null, number, T | null] = result as any
     let cost = 0
     if (err) {
       cost += TOKEN_ERROR_COST
@@ -176,10 +188,25 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
     cost += Math.floor(elapsed * TOKEN_COST_PER_MILLISECOND)
 
     handlers[idx].ratelimitingCurrentTokens = Math.max(0, handlers[idx].ratelimitingCurrentTokens - cost)
+    const cappedCost = handlers[idx].startTokens - handlers[idx].ratelimitingCurrentTokens
     ids.push(handlers[idx].id)
     tokens.push(handlers[idx].ratelimitingCurrentTokens)
-    costs.push(handlers[idx].startTokens - handlers[idx].ratelimitingCurrentTokens)
+    costs.push(cappedCost)
     brains.push(handlers[idx].brain)
+
+    invocations.handlerIds.push(handlers[idx].id)
+    invocations.results.push(
+      err
+        ? err?.message || String(err)
+        : (
+          Object.is(value, defaultValue)
+            ? 'not executed: no binding'
+            : null
+        )
+    )
+    invocations.durations.push(elapsed)
+    invocations.costs.push(cappedCost)
+    invocations.logs.push(handlers[idx].logs)
 
     ++idx;
   }
@@ -195,6 +222,8 @@ export async function executeHandlers<T>(client: Client, handlers: Handler[], ar
       SELECT id, ct, c, b FROM UNNEST($1::uuid[], $2::int[], $3::int[], $4::jsonb[]) as x("id", "ct", "c", "b")
     ) updater where updater.id = handlers.id
   `, [ids, tokens, costs, brains]);
+
+  await createInvocation(db, invocations)
   runCompleted!()
 }
 
@@ -263,7 +292,7 @@ export async function registerMessageIdInterest(opts: RegisterMessageIdInterest)
       ) values ($1, $2) on conflict(handler_id, message_id) do nothing returning id;
     `, [id, opts.id])
 
-    logger.info('interest registered:', opts)
+    logger.info(opts, 'interest registered')
     return contentResult.rows.length !== 0
   })
 }
