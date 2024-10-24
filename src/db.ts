@@ -27,6 +27,8 @@ export async function getDatabaseConnection() {
     } catch (err) {
       await client.query(`ROLLBACK;`)
       throw err
+    } finally {
+      client.release()
     }
   };
   return db
