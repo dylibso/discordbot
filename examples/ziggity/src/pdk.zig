@@ -2,10 +2,10 @@
 const std = @import("std");
 const extism = @import("extism-pdk");
 
-const _plugin = extism.Plugin.init(std.heap.wasm_allocator);
-
 const user = @import("main.zig");
 const schema = @import("schema.zig");
+
+const _plugin = extism.Plugin.init(std.heap.wasm_allocator);
 
 const ERR_PRINTING_MSG: []const u8 = "std.fmt.allocPrint failed when formatting plugin error";
 
