@@ -133,6 +133,7 @@ components:
           description: "The id of the reaction (if custom); null if a built-in emoji"
         animated:
           type: boolean
+          nullable: true
           description: whether or not the emoji is animated
         name:
           type: string
