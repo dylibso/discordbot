@@ -1,9 +1,9 @@
-app_01j8r463d3f6c91hdevkctb7cw = "app_01j8r463d3f6c91hdevkctb7cw"
+app_id = "app_01j8r463d3f6c91hdevkctb7cw"
 
 # This is where 'xtp plugin push' expects to find the wasm file after the build script has run.
 bin = "zig-out/bin/plugin.wasm"
 extension_point_id = "ext_01j8r4jqawfd6tjxh85t3988kc"
-name = "ziggity"
+name = "sandshrew"
 
 [scripts]
 
