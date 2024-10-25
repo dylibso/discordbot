@@ -66,10 +66,12 @@ components:
         channel:
           type: string
           description: The channel the message was received in
+          nullable: true
 
         guild:
           type: string
           description: The guild the message was received in
+          nullable: true
 
     OutgoingRequest:
       description: An HTTP request
