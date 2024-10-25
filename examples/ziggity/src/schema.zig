@@ -33,7 +33,7 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
         return out.value;
     }
 
@@ -56,7 +56,7 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
         return out.value;
     }
 
@@ -79,7 +79,7 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
         return out.value;
     }
 
@@ -101,8 +101,28 @@ pub const Host = struct {
         defer outMem.free();
         const buffer = try _plugin.allocator.alloc(u8, @intCast(outMem.length));
         outMem.load(buffer);
-        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always });
+        const out = try std.json.parseFromSlice(HandlerResult, _plugin.allocator, buffer, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
         return out.value;
+    }
+};
+
+/// An emoji used to react
+pub const Emoji = struct {
+    /// whether or not the emoji is animated
+    animated: bool,
+    /// The id of the reaction (if custom); null if a built-in emoji
+    id: ?[]const u8 = null,
+    /// the name used for the reactji; built-in emoji will be the literal character, otherwise the text name appears here
+    name: []const u8,
+
+    /// Internally used function, should not be called by plugin authors.
+    pub fn XXX__decodeBase64Fields(self: *Emoji) !*Emoji {
+        return self;
+    }
+
+    /// Internally used function, should not be called by plugin authors.
+    pub fn XXX__encodeBase64Fields(self: *Emoji) !*Emoji {
+        return self;
     }
 };
 
@@ -111,7 +131,7 @@ pub const HandlerResult = struct {
     /// An error code. Zero indicates success. Negative numbers indicate failure.
     errorCode: i64,
     /// An id for the result
-    id: ?[]const u8,
+    id: ?[]const u8 = null,
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__decodeBase64Fields(self: *HandlerResult) !*HandlerResult {
@@ -141,22 +161,34 @@ pub const IncomingEvent = struct {
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__decodeBase64Fields(self: *IncomingEvent) !*IncomingEvent {
-        self.message = (try self.message.?.XXX__decodeBase64Fields()).*;
+        if (self.message != null) {
+            self.message = (try self.message.?.XXX__decodeBase64Fields()).*;
+        }
 
-        self.reaction = (try self.reaction.?.XXX__decodeBase64Fields()).*;
+        if (self.reaction != null) {
+            self.reaction = (try self.reaction.?.XXX__decodeBase64Fields()).*;
+        }
 
-        self.response = (try self.response.?.XXX__decodeBase64Fields()).*;
+        if (self.response != null) {
+            self.response = (try self.response.?.XXX__decodeBase64Fields()).*;
+        }
 
         return self;
     }
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__encodeBase64Fields(self: *IncomingEvent) !*IncomingEvent {
-        self.message = (try self.message.?.XXX__encodeBase64Fields()).*;
+        if (self.message != null) {
+            self.message = (try self.message.?.XXX__encodeBase64Fields()).*;
+        }
 
-        self.reaction = (try self.reaction.?.XXX__encodeBase64Fields()).*;
+        if (self.reaction != null) {
+            self.reaction = (try self.reaction.?.XXX__encodeBase64Fields()).*;
+        }
 
-        self.response = (try self.response.?.XXX__encodeBase64Fields()).*;
+        if (self.response != null) {
+            self.response = (try self.response.?.XXX__encodeBase64Fields()).*;
+        }
 
         return self;
     }
@@ -190,12 +222,14 @@ pub const IncomingReaction = struct {
     from: []const u8,
     /// An incoming message
     message: IncomingMessage,
-    /// The emoji reaction
-    with: []const u8,
+    /// An emoji used to react
+    with: Emoji,
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__decodeBase64Fields(self: *IncomingReaction) !*IncomingReaction {
         self.message = (try self.message.XXX__decodeBase64Fields()).*;
+
+        self.with = (try self.with.XXX__decodeBase64Fields()).*;
 
         return self;
     }
@@ -203,6 +237,8 @@ pub const IncomingReaction = struct {
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__encodeBase64Fields(self: *IncomingReaction) !*IncomingReaction {
         self.message = (try self.message.XXX__encodeBase64Fields()).*;
+
+        self.with = (try self.with.XXX__encodeBase64Fields()).*;
 
         return self;
     }
@@ -233,11 +269,11 @@ pub const IncomingResponse = struct {
 /// An outgoing message
 pub const OutgoingMessage = struct {
     /// The channel the message was received in
-    channel: ?[]const u8,
+    channel: ?[]const u8 = null,
     /// The message text
     message: []const u8,
     /// A message ID to reply to
-    reply: ?[]const u8,
+    reply: ?[]const u8 = null,
 
     /// Internally used function, should not be called by plugin authors.
     pub fn XXX__decodeBase64Fields(self: *OutgoingMessage) !*OutgoingMessage {

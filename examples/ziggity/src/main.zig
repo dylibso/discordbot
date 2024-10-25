@@ -19,13 +19,23 @@ pub fn handle(input: schema.IncomingEvent) !void {
     };
 
     plugin.log(.Debug, message.id);
-    _ = try Host.react(schema.OutgoingReaction{
+    var result = try Host.react(schema.OutgoingReaction{
         .messageId = message.id,
         .with = "🦎",
     });
+    if (result.errorCode != 0) {
+        const code = result.errorCode;
+        const id = result.id;
+        plugin.log(.Debug, try std.fmt.allocPrint(plugin.allocator, "first reaction failed: {any} ({d})", .{ id, code }));
+    }
 
-    _ = try Host.react(schema.OutgoingReaction{
+    result = try Host.react(schema.OutgoingReaction{
         .messageId = message.id,
-        .with = "⚡️",
+        .with = "🚀",
     });
+    if (result.errorCode != 0) {
+        const code = result.errorCode;
+        const id = result.id;
+        plugin.log(.Debug, try std.fmt.allocPrint(plugin.allocator, "second reaction failed: {any} ({d})", .{ id, code }));
+    }
 }
