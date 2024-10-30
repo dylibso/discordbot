@@ -54,6 +54,7 @@ export async function startDiscordClient(logger: Logger) {
     const handlers = await fetchByContentInterest({ guild: guild.id, channel: message.channel.name, content: message.content });
     await executeHandlers(client, handlers, {
       channel: message.channel.name,
+      channelId: message.channel.id,
       guild: guild.id,
       kind: 'content',
       message: {
@@ -72,6 +73,7 @@ export async function startDiscordClient(logger: Logger) {
     const messageIdInterests = await fetchByMessageIdInterest({ guild: guild.id, channel: message.channel.name, id })
     await executeHandlers(client, messageIdInterests, {
       channel: message.channel.name,
+      channelId: message.channel.id,
       guild: guild.id,
       kind: 'watch:reference',
       message: {
@@ -113,6 +115,7 @@ export async function startDiscordClient(logger: Logger) {
     })
     await executeHandlers(client, handlers, {
       channel: reaction.message.channel.name,
+      channelId: reaction.message.channel.id,
       guild: guild.id,
       kind: 'watch:reaction:added',
       reaction: {
@@ -156,6 +159,7 @@ export async function startDiscordClient(logger: Logger) {
     })
     await executeHandlers(client, handlers, {
       channel: reaction.message.channel.name,
+      channelId: reaction.message.channel.id,
       guild: guild.id,
       kind: 'watch:reaction:removed',
       reaction: {
@@ -532,7 +536,7 @@ ${'```'}
 }
 
 async function handleListenCommand(client: Client, command: CommandInteraction) {
-  const regex = command.options.get('regex')?.value as string;
+  let regex = command.options.get('regex')?.value as string;
   const plugin = command.options.get('plugin')?.value as string || pokemon.random().toLowerCase();
   const guild = command.guildId;
 
@@ -549,6 +553,10 @@ async function handleListenCommand(client: Client, command: CommandInteraction) 
       ephemeral: true,
       content: "You need to provide a regex and a plugin name"
     });
+  }
+
+  if (regex[0] === regex.slice(-1)[0] && (regex[0] === '"' || regex[0] === "'" || regex[0] === '/')) {
+    regex = regex.slice(1, -1).trim()
   }
 
   if (!isValidRegex(regex)) {

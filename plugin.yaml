@@ -68,6 +68,11 @@ components:
           description: The channel the message was received in
           nullable: true
 
+        channelId:
+          type: string
+          description: The channel id the message was received in
+          nullable: true
+
         guild:
           type: string
           description: The guild the message was received in
