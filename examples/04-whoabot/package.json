@@ -3,7 +3,7 @@
   "description": "",
   "devDependencies": {
     "@extism/js-pdk": "^1.0.1",
-    "esbuild": "^0.23.0",
+    "esbuild": "^0.25.0",
     "prettier": "^3.3.2",
     "typescript": "^5.5.3"
   },
