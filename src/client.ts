@@ -1,4 +1,4 @@
-import { AttachmentBuilder, ChannelType, Client, CommandInteraction, GatewayIntentBits, GuildTextBasedChannel, PermissionFlagsBits, PermissionsBitField, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { AttachmentBuilder, ChannelType, ChatInputCommandInteraction, Client, CommandInteraction, GatewayIntentBits, GuildTextBasedChannel, PermissionFlagsBits, PermissionsBitField, REST, Routes, SlashCommandBuilder } from 'discord.js';
 import safe from 'safe-regex';
 
 import { DISCORD_BOT_TOKEN, DISCORD_BOT_CLIENT_ID, DISCORD_GUILD_FILTER, DISCORD_PLUGIN_COMMAND, DISCORD_MANAGE_COMMAND } from './config';
@@ -297,6 +297,7 @@ export async function startDiscordClient(logger: Logger) {
         }
       }
     } else if (command.commandName === DISCORD_PLUGIN_COMMAND) {
+
       switch (command.options.getSubcommand()) {
         case 'signup': return await handleSignupCommand(command)
 
@@ -479,7 +480,7 @@ async function refreshCommands(rest: REST, logger: Logger) {
   }
 }
 
-async function handleLogsCommand(client: Client, command: CommandInteraction) {
+async function handleLogsCommand(_client: Client, command: ChatInputCommandInteraction) {
   const plugin = command.options.get('plugin')?.value as string
   let [username, pluginName] = plugin!.split(':')
   if (!pluginName) {
@@ -531,7 +532,7 @@ ${'```'}
   })
 }
 
-async function handleListenCommand(client: Client, command: CommandInteraction) {
+async function handleListenCommand(_client: Client, command: ChatInputCommandInteraction) {
   const regex = command.options.get('regex')?.value as string;
   const plugin = command.options.get('plugin')?.value as string || pokemon.random().toLowerCase();
   const guild = command.guildId;
